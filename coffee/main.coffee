@@ -265,7 +265,7 @@ class MouseHandler
           console.log "! placing objects"
           @makePlacingObject(e)
           @ve.container.onmousemove = (eve) => @placingMove(eve)
-          @ve.container.onmousedown = (eve) => @placingDown(eve)
+          @ve.container.onmouseup = (eve) => @placingUp(eve)
 
     if ixs.length > 1 and
       ixs[1].object.userData instanceof Surface and
@@ -274,13 +274,9 @@ class MouseHandler
         console.log "! surface select -- " + e.constructor.name
         console.log e
         @placingObject = e
+        @ve.container.onmouseup = (eve) => @placingUp(eve)
         @ve.container.onmousemove = (eve) => @placingMove(eve)
-        @ve.container.onmousedown = (eve) => @placingDown(eve)
 
-  placingDown: (event) ->
-    console.log "plop"
-    @ve.container.onmousemove = null
-    @ve.container.onmousedown = (eve) => @baseDown(eve)
 
   linkingDown0: (event) ->
     @ve.raycaster.setFromCamera(@pos, @ve.camera)
@@ -288,13 +284,6 @@ class MouseHandler
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! lnk0 " + e.constructor.name
-      ###
-      pos0 = new THREE.Vector3(
-        ixs[0].object.position.x,
-        ixs[0].object.position.y,
-        5
-      )
-      ###
       pos0 = ixs[0].object.linep
       pos1 = new THREE.Vector3(
         ixs[0].object.position.x,
@@ -325,6 +314,14 @@ class MouseHandler
       @ve.container.onmousedown = (eve) => @baseDown(eve)
     else
       console.log "! lnk1 miss"
+
+  #onmouseuphandlers
+  placingUp: (event) ->
+    console.log "plop"
+    @ve.container.onmousemove = null
+    @ve.container.onmousedown = (eve) => @baseDown(eve)
+    @ve.container.onmouseup = null
+
 
   #onmousemove handlers
   placingMove: (event) ->
