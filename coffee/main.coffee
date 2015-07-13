@@ -107,6 +107,7 @@ BaseElements = {
   Link: class Link
     constructor: (@parent, x, y, z) ->
       @shp = new Shapes.Rectangle(@parent.material.color, x, y, z, 25, 25)
+      #TODO if ln itself is clicked on this messes up selection logic 
       @ln = new Shapes.Line(0xababab, 0, 0, 5, 25, 25)
       @shp.obj3d.userData = this
       @shp.obj3d.add(@ln.obj3d)
@@ -232,10 +233,15 @@ class MouseHandler
         e = ixs[0].object.userData
         console.log "! ebox select -- " + e.constructor.name
         console.log e
-
-        @makePlacingObject(e)
-        @ve.container.onmousemove = (eve) => @placingMove(eve)
-        @ve.container.onmousedown = (eve) => @placingDown(eve)
+        if e instanceof Link
+          console.log "! linking objects"
+          @ve.container.onmousemove = (eve) => @linkingMove0(eve)
+          @ve.container.onmousedown = (eve) => @linkingDown0(eve)
+        else
+          console.log "! placing objects"
+          @makePlacingObject(e)
+          @ve.container.onmousemove = (eve) => @placingMove(eve)
+          @ve.container.onmousedown = (eve) => @placingDown(eve)
 
     if ixs.length > 1 and
       ixs[1].object.userData instanceof Surface and
@@ -252,6 +258,16 @@ class MouseHandler
     @ve.container.onmousemove = null
     @ve.container.onmousedown = (eve) => @baseDown(eve)
 
+  linkingDown0: (event) ->
+    #TODO you are here
+    @ve.container.onmousemove = (eve) => @linkingMove1(eve)
+    @ve.container.onmousedown = (eve) => @linkingDown1(eve)
+
+  linkingDown1: (event) ->
+    #TODO you are here
+    @ve.container.onmousemove = null
+    @ve.container.onmousedown = (eve) => @baseDown(eve)
+
   #onmousemove handlers
   placingMove: (event) ->
     @updateMouse(event)
@@ -264,4 +280,14 @@ class MouseHandler
       @placingObject.shp.obj3d.position.x = bix[0].point.x
       @placingObject.shp.obj3d.position.y = bix[0].point.y
       @ve.render()
+
+  linkingMove0: (event) ->
+    @updateMouse(event)
+    console.log "! lm0"
+    #TODO you are here
+    
+  linkingMove1: (event) ->
+    @updateMouse(event)
+    console.log "! lm1"
+    #TODO you are here
 
