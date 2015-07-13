@@ -1,0 +1,12 @@
+#vim
+*.swp
+*.swo
+
+#sass
+.sass-cache
+
+#generated coffee files
+coffee/*.js
+
+#generated css files
+scss/*.css

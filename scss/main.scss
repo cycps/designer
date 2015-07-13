@@ -1,0 +1,26 @@
+$font-stack: "Lucida Console", Monaco, monospace;
+$light-color: #cacaca;
+$dark-color: #529aa1;
+
+body {
+  font: 100% $font-stack;
+  color: $light-color;
+  background-color: $dark-color;
+}
+
+#surface {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+}
+
+#elementbox {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  bottom: 5px;
+  width: 100px;
+  background-color: rgba(#ffffff, 0);
+}
