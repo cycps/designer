@@ -183,8 +183,16 @@ class MouseHandler
 
   placingObject: null
   
-  makePlacingObject: (obj, x, y) ->
-    @placingObject = @ve.surface.addElement(obj, 0, 0)
+  makePlacingObject: (obj) ->
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    bix = @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
+    x = y = 0
+    if bix.length > 0
+      ix = bix[bix.length - 1]
+      x = ix.point.x
+      y = ix.point.y
+
+    @placingObject = @ve.surface.addElement(obj, x, y)
 
   #onmousedown handlers
   baseDown: (event) ->
@@ -197,7 +205,8 @@ class MouseHandler
         e = ixs[0].object.userData
         console.log "! ebox select -- " + e.constructor.name
         console.log e
-        @makePlacingObject(e, 0, 0)
+
+        @makePlacingObject(e)
         @ve.container.onmousemove = (eve) => @placingMove(eve)
         @ve.container.onmousedown = (eve) => @placingDown(eve)
 
