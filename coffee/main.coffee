@@ -9,7 +9,7 @@ root.go = ->
 
 #Global event handlers
 root.vz_mousedown = (event) ->
-  g.ve.handle_mousedown(event)
+  g.ve.mouseh.ondown(event)
 
 #Global state holder
 g = {}
@@ -63,19 +63,31 @@ BaseElements = {
   Controller: class Controller
     constructor: (@parent, x, y, z) ->
       @shp = new Shapes.Diamond(0x007474, x, y, z, 15)
+      @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+
+    #cyjs generates the json for this object
+    cyjs: ->
 
   #Router is a visual representation of an IP-network router 
   Router: class Router
     constructor: (@parent, x, y, z) ->
       @shp = new Shapes.Circle(0x0047ca, x, y, z, 15)
+      @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+    
+    #cyjs generates the json for this object
+    cyjs: ->
 
   #Switch is a visual representation of an IP-network swtich
   Switch: class Switch
     constructor: (@parent, x, y, z) ->
       @shp= new Shapes.Rectangle(0x0047ca, x, y, z, 25, 25)
+      @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+    
+    #cyjs generates the json for this object
+    cyjs: ->
 
 }
 
@@ -89,6 +101,7 @@ class ElementBox
     @y =  0
     @z = 5
     @box = new Shapes.Rectangle(0x404040, @x, @y, @z, @width, @height)
+    @box.obj3d.userData = this
     @ve.scene.add(@box.obj3d)
     @count = 0
     @addBaseElements()
@@ -106,9 +119,9 @@ class ElementBox
 
   #addBaseElements adds the common base elements to the ElementBox
   addBaseElements: ->
-    @addElement((box, x, y) -> new BaseElements.Controller(box, x, y, 0))
-    @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 0))
-    @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 0))
+    @addElement((box, x, y) -> new BaseElements.Controller(box, x, y, 5))
+    @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 5))
+    @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 class Surface
@@ -117,6 +130,7 @@ class Surface
     @height = @ve.height
     @width = @ve.width
     @baseRect = new Shapes.Rectangle(0x262626, 0, 0, 0, @width, @height)
+    @baseRect.obj3d.userData = this
     @ve.scene.add(@baseRect.obj3d)
 
 #VisualEnvironment holds the state associated with the Threejs objects used
@@ -143,20 +157,45 @@ class VisualEnvironment
     @renderer.setClearColor(@clear, @alpha)
     @container.appendChild(@renderer.domElement)
     @camera.position.z = 100
-    @mouse = new THREE.Vector2(0, 0)
+    @mouseh = new MouseHandler(this)
     @raycaster = new THREE.Raycaster()
 
   render: ->
     @renderer.render(@scene, @camera)
 
-  updateMouse: (event) ->
-    @mouse.x =  (event.layerX / @container.offsetWidth ) * 2 - 1
-    @mouse.y = -(event.layerY / @container.offsetHeight) * 2 + 1
-    console.log(@mouse.x + "," + @mouse.y)
+#Mouse handler encapsulates the logic of dealing with mouse events
+class MouseHandler
 
-  handle_mousedown: (event) ->
+  constructor: (@ve) ->
+    @pos = new THREE.Vector2(0, 0)
+
+  ondown: (event) -> @baseDown(event)
+  
+  updateMouse: (event) ->
+    @pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
+    @pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
+    console.log(@pos.x + "," + @pos.y)
+
+  #onmousedown handlers
+  baseDown: (event) ->
     @updateMouse(event)
-    @raycaster.setFromCamera(@mouse, @camera)
-    ixs = @raycaster.intersectObjects(@scene.children, true)
-    console.log "!" if ixs.length > 0
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    ixs = @ve.raycaster.intersectObjects(@ve.scene.children, true)
+    if ixs.length > 1 and
+      ixs[1].object.userData instanceof ElementBox and
+      ixs[0].object.userData.cyjs?
+        e = ixs[0].object.userData
+        console.log "! ebox select -- " + e.constructor.name
+        console.log e
+        @ve.container.onmousemove = (eve) => @placingMove(eve)
+        @ve.container.onmousedown = (eve) => @placingDown(eve)
+
+  placingDown: (event) ->
+    console.log "plop"
+    @ve.container.onmousemove = null
+    @ve.container.onmousedown = (eve) => @baseDown(eve)
+
+  #onmousemove handlers
+  placingMove: (event) ->
+    @updateMouse(event)
 
