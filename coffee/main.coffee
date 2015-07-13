@@ -5,6 +5,7 @@ root.go = ->
   g.ve = new VisualEnvironment(document.getElementById("surface"))
   g.ve.ebox = new ElementBox(g.ve)
   g.ve.surface = new Surface(g.ve)
+  #g.ve.surface.glowCircle(20)
   g.ve.render(g.ve)
 
 #Global event handlers
@@ -29,6 +30,8 @@ Shapes = {
       @obj3d.linep = new THREE.Vector3(x, y, 5)
       @obj3d.lines = []
 
+    select: ->
+
   Circle : class Circle
     constructor: (color, x, y, z, radius) ->
       @geom = new THREE.CircleGeometry(radius, 64)
@@ -39,6 +42,8 @@ Shapes = {
       @obj3d.position.z = z
       @obj3d.linep = new THREE.Vector3(x, y, 5)
       @obj3d.lines = []
+
+    select: ->
 
   Diamond: class Diamond
     constructor: (color, x, y, z, l) ->
@@ -57,6 +62,8 @@ Shapes = {
       @obj3d.position.z = z
       @obj3d.linep = new THREE.Vector3(x, y, 5)
       @obj3d.lines = []
+    
+    select: ->
 
   Line: class Line
     constructor: (color, from, to, z) ->
@@ -69,6 +76,8 @@ Shapes = {
       @obj3d.position.y = 0
       @obj3d.position.z = z
       @obj3d.lines = []
+    
+    select: ->
 
 }
 
@@ -173,6 +182,8 @@ class Surface
     @baseRect = new Shapes.Rectangle(0x262626, 0, 0, 0, @width, @height)
     @baseRect.obj3d.userData = this
     @ve.scene.add(@baseRect.obj3d)
+    @selectGroup = new THREE.Group()
+    @ve.scene.add(@selectGroup)
 
   addElement: (ef, x, y) ->
     e = new ef.constructor(@baseRect, x, y, 50)
@@ -184,8 +195,63 @@ class Surface
     o.position.y = p.y
     o.linep.x = p.x
     o.linep.y = p.y
+
+    if o.userData.glowBubble?
+      o.userData.glowBubble.position.x = p.x
+      o.userData.glowBubble.position.y = p.y
+
     ln.geom.verticesNeedUpdate = true for ln in o.lines
     true
+
+  moveSelection: -> #TODO
+
+  
+  glowMaterial: () ->
+    cam = @.ve.camera
+    new THREE.ShaderMaterial({
+      uniforms: {
+          "c": { type: "f", value: 1.0 },
+          "p": { type: "f", value: 1.4 },
+          glowColor: { type: "c", value: new THREE.Color(0x7800ff) },
+          viewVector: { type: "v3", value: cam.position }
+      },
+      vertexShader: document.getElementById("vertexShader").textContent,
+      fragmentShader: document.getElementById("fragmentShader").textContent,
+      side: THREE.FrontSide,
+      blending: THREE.AdditiveBlending,
+      transparent: true
+    })
+
+  glowSphere: (radius, x, y, z) ->
+    geom = new THREE.SphereGeometry(radius, 64, 64)
+    mat = @glowMaterial()
+    obj = new THREE.Mesh(geom, mat)
+    obj.position.x = x
+    obj.position.y = y
+    obj.position.z = z
+    obj
+
+  selectObj: (obj) ->
+    
+    @clearSelection()
+
+    if not obj.glowBubble?
+      console.log "! select"
+      console.log obj
+      p = obj.shp.obj3d.position
+      s = obj.shp.geom.boundingSphere.radius + 3
+      gs = @glowSphere(s, p.x, p.y, p.z)
+      gs.userData = obj
+      obj.glowBubble = gs
+      @selectGroup.add(gs)
+      @ve.render()
+    true
+
+  clearSelection: ->
+    delete gb.userData.glowBubble for gb in @selectGroup.children
+    @selectGroup.children = []
+    @ve.render()
+
 
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
@@ -210,7 +276,7 @@ class VisualEnvironment
     @alpha = 1
     @renderer.setClearColor(@clear, @alpha)
     @container.appendChild(@renderer.domElement)
-    @camera.position.z = 100
+    @camera.position.z = 200
     @mouseh = new MouseHandler(this)
     @raycaster = new THREE.Raycaster()
 
@@ -267,15 +333,22 @@ class MouseHandler
           @ve.container.onmousemove = (eve) => @placingMove(eve)
           @ve.container.onmouseup = (eve) => @placingUp(eve)
 
-    if ixs.length > 1 and
+    else if ixs.length > 1 and
       ixs[1].object.userData instanceof Surface and
       ixs[0].object.userData.cyjs?
         e = ixs[0].object.userData
         console.log "! surface select -- " + e.constructor.name
         console.log e
+        @ve.surface.selectObj(e)
         @placingObject = e
         @ve.container.onmouseup = (eve) => @placingUp(eve)
         @ve.container.onmousemove = (eve) => @placingMove(eve)
+
+    else if ixs.length > 0 and
+      ixs[0].object.userData instanceof Surface
+        console.log "! surface clear"
+        @ve.surface.clearSelection()
+
 
 
   linkingDown0: (event) ->
