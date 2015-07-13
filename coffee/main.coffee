@@ -3,8 +3,8 @@ root = exports ? this
 #Entry point
 root.go = ->
   g.ve = new VisualEnvironment(document.getElementById("surface"))
-  ebox = new ElementBox(g.ve)
-  surface = new Surface(g.ve)
+  g.ve.ebox = new ElementBox(g.ve)
+  g.ve.surface = new Surface(g.ve)
   g.ve.render(g.ve)
 
 #Global event handlers
@@ -133,6 +133,11 @@ class Surface
     @baseRect.obj3d.userData = this
     @ve.scene.add(@baseRect.obj3d)
 
+  addElement: (ef, x, y) ->
+    e = new ef.constructor(@baseRect, x, y, 5)
+    @ve.render()
+    e
+
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
 #for controlling and interacting with this group of Threejs objects.
@@ -176,6 +181,11 @@ class MouseHandler
     @pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
     console.log(@pos.x + "," + @pos.y)
 
+  placingObject: null
+  
+  makePlacingObject: (obj, x, y) ->
+    @placingObject = @ve.surface.addElement(obj, 0, 0)
+
   #onmousedown handlers
   baseDown: (event) ->
     @updateMouse(event)
@@ -187,6 +197,7 @@ class MouseHandler
         e = ixs[0].object.userData
         console.log "! ebox select -- " + e.constructor.name
         console.log e
+        @makePlacingObject(e, 0, 0)
         @ve.container.onmousemove = (eve) => @placingMove(eve)
         @ve.container.onmousedown = (eve) => @placingDown(eve)
 
@@ -198,4 +209,12 @@ class MouseHandler
   #onmousemove handlers
   placingMove: (event) ->
     @updateMouse(event)
+
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    bix = @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
+
+    if bix.length > 0
+      @placingObject.shp.obj3d.position.x = bix[0].point.x #event.layerX #@pos.x
+      @placingObject.shp.obj3d.position.y = bix[0].point.y #event.layerY #@pos.y
+      @ve.render()
 
