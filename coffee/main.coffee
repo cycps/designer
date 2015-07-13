@@ -168,7 +168,7 @@ class Surface
     @ve.scene.add(@baseRect.obj3d)
 
   addElement: (ef, x, y) ->
-    e = new ef.constructor(@baseRect, x, y, 10)
+    e = new ef.constructor(@baseRect, x, y, 50)
     @ve.render()
     e
 
@@ -200,6 +200,8 @@ class VisualEnvironment
     @raycaster = new THREE.Raycaster()
 
   render: ->
+    @renderer.clear()
+    @renderer.clearDepth()
     @renderer.render(@scene, @camera)
 
 #Mouse handler encapsulates the logic of dealing with mouse events
