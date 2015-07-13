@@ -210,6 +210,16 @@ class MouseHandler
         @ve.container.onmousemove = (eve) => @placingMove(eve)
         @ve.container.onmousedown = (eve) => @placingDown(eve)
 
+    if ixs.length > 1 and
+      ixs[1].object.userData instanceof Surface and
+      ixs[0].object.userData.cyjs?
+        e = ixs[0].object.userData
+        console.log "! surface select -- " + e.constructor.name
+        console.log e
+        @placingObject = e
+        @ve.container.onmousemove = (eve) => @placingMove(eve)
+        @ve.container.onmousedown = (eve) => @placingDown(eve)
+
   placingDown: (event) ->
     console.log "plop"
     @ve.container.onmousemove = null
@@ -223,7 +233,8 @@ class MouseHandler
     bix = @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
 
     if bix.length > 0
-      @placingObject.shp.obj3d.position.x = bix[0].point.x #event.layerX #@pos.x
-      @placingObject.shp.obj3d.position.y = bix[0].point.y #event.layerY #@pos.y
+      ox = @placingObject.shp.geom.boundingSphere.radius
+      @placingObject.shp.obj3d.position.x = bix[0].point.x
+      @placingObject.shp.obj3d.position.y = bix[0].point.y
       @ve.render()
 
