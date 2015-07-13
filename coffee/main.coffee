@@ -53,18 +53,14 @@ Shapes = {
       @obj3d.position.z = z
 
   Line: class Line
-    constructor: (color, x, y, z, width, height) ->
+    constructor: (color, from, to, z) ->
       @material = new THREE.LineBasicMaterial({color: color, linewidth: 3})
       @geom = new THREE.Geometry()
-      w = width/2
-      h = height/2
-      @geom.vertices.push(
-        new THREE.Vector3(-w,  h, z),
-        new THREE.Vector3( w, -h, z)
-      )
+      @geom.dynamic = true
+      @geom.vertices.push(from, to)
       @obj3d = new THREE.Line(@geom, @material)
-      @obj3d.position.x = x
-      @obj3d.position.y = y
+      @obj3d.position.x = 0
+      @obj3d.position.y = 0
       @obj3d.position.z = z
 
 }
@@ -105,13 +101,18 @@ BaseElements = {
     cyjs: ->
 
   Link: class Link
-    constructor: (@parent, x, y, z) ->
-      @shp = new Shapes.Rectangle(@parent.material.color, x, y, z, 25, 25)
+    constructor: (@parent, from, to, x, y, z, isIcon = false) ->
+      @ln = new Shapes.Line(0xababab, from, to, z)
+      @ln.obj3d.userData = this
+
       #TODO if ln itself is clicked on this messes up selection logic 
-      @ln = new Shapes.Line(0xababab, 0, 0, 5, 25, 25)
-      @shp.obj3d.userData = this
-      @shp.obj3d.add(@ln.obj3d)
-      @parent.obj3d.add(@shp.obj3d)
+      if isIcon
+        @shp = new Shapes.Rectangle(@parent.material.color, x, y, z, 25, 25)
+        @shp.obj3d.userData = this
+        @shp.obj3d.add(@ln.obj3d)
+        @parent.obj3d.add(@shp.obj3d)
+      else
+        @parent.obj3d.add(@ln.obj3d)
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -149,7 +150,12 @@ class ElementBox
     @addElement((box, x, y) -> new BaseElements.Controller(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 5))
-    @addElement((box, x, y) -> new BaseElements.Link(box, x, y, 5))
+    @addElement((box, x, y) ->
+      new BaseElements.Link(box,
+        new THREE.Vector3(-12.5, 12.5, 5), new THREE.Vector3(12.5, -12.5, 5),
+        x, y, 5, true
+      )
+    )
 
 #The Surface holds visual representations of Systems and Elements
 class Surface
@@ -162,7 +168,7 @@ class Surface
     @ve.scene.add(@baseRect.obj3d)
 
   addElement: (ef, x, y) ->
-    e = new ef.constructor(@baseRect, x, y, 5)
+    e = new ef.constructor(@baseRect, x, y, 10)
     @ve.render()
     e
 
@@ -183,7 +189,7 @@ class VisualEnvironment
       @width / -2, @width / 2,
       @height / 2, @height / -2,
       1, 1000)
-    @renderer = new THREE.WebGLRenderer({antialiasing: true, alpha: true})
+    @renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
     @renderer.setSize(@width, @height)
     @clear = 0x262626
     @alpha = 1
@@ -207,9 +213,10 @@ class MouseHandler
   updateMouse: (event) ->
     @pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
     @pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
-    console.log(@pos.x + "," + @pos.y)
+    #console.log(@pos.x + "," + @pos.y)
 
   placingObject: null
+  placingLink: null
   
   makePlacingObject: (obj) ->
     @ve.raycaster.setFromCamera(@pos, @ve.camera)
@@ -259,14 +266,40 @@ class MouseHandler
     @ve.container.onmousedown = (eve) => @baseDown(eve)
 
   linkingDown0: (event) ->
-    #TODO you are here
-    @ve.container.onmousemove = (eve) => @linkingMove1(eve)
-    @ve.container.onmousedown = (eve) => @linkingDown1(eve)
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    ixs = @ve.raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
+    if ixs.length > 0 and ixs[0].object.userData.cyjs?
+      e = ixs[0].object.userData
+      console.log "! lnk0 " + e.constructor.name
+      pos0 = new THREE.Vector3(
+        ixs[0].object.position.x,
+        ixs[0].object.position.y,
+        5
+      )
+      pos1 = new THREE.Vector3(
+        ixs[0].object.position.x,
+        ixs[0].object.position.y,
+        5
+      )
+      @placingLink = new BaseElements.Link(@ve.surface.baseRect,
+        pos0, pos1, 0, 0, 5
+      )
+      @ve.container.onmousemove = (eve) => @linkingMove1(eve)
+      @ve.container.onmousedown = (eve) => @linkingDown1(eve)
+    else
+      console.log "! lnk0 miss"
+
 
   linkingDown1: (event) ->
-    #TODO you are here
-    @ve.container.onmousemove = null
-    @ve.container.onmousedown = (eve) => @baseDown(eve)
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    ixs = @ve.raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
+    if ixs.length > 0 and ixs[0].object.userData.cyjs?
+      e = ixs[0].object.userData
+      console.log "! lnk1 " + e.constructor.name
+      @ve.container.onmousemove = null
+      @ve.container.onmousedown = (eve) => @baseDown(eve)
+    else
+      console.log "! lnk1 miss"
 
   #onmousemove handlers
   placingMove: (event) ->
@@ -283,11 +316,17 @@ class MouseHandler
 
   linkingMove0: (event) ->
     @updateMouse(event)
-    console.log "! lm0"
-    #TODO you are here
+    #console.log "! lm0"
     
   linkingMove1: (event) ->
     @updateMouse(event)
-    console.log "! lm1"
-    #TODO you are here
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    bix = @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
+    if bix.length > 0
+      #console.log "! lm1"
+      @ve.scene.updateMatrixWorld()
+      @placingLink.ln.geom.vertices[1].x = bix[bix.length - 1].point.x
+      @placingLink.ln.geom.vertices[1].y = bix[bix.length - 1].point.y
+      @placingLink.ln.geom.verticesNeedUpdate = true
+      @ve.render()
 
