@@ -14,7 +14,8 @@ root.vz_mousedown = (event) ->
 #Global state holder
 g = {}
 
-#The basic shapes we are using
+#Shapes contains a collection of classes that comprise the basic shapes used to
+#represent Cypress CPS elements
 Shapes = {
 
   Rectangle : class Rectangle
@@ -53,19 +54,24 @@ Shapes = {
 
 }
 
+#The BaseElements object holds classes which are Visual representations of the
+#objects that comprise a Cypress networked CPS system
 BaseElements = {
-  
+ 
+  #The Controller class is a visual representation of a controller e.g., a
+  #computer that hosts control code
   Controller: class Controller
     constructor: (@parent, x, y, z) ->
       @shp = new Shapes.Diamond(0x007474, x, y, z, 15)
       @parent.obj3d.add(@shp.obj3d)
 
-  
+  #Router is a visual representation of an IP-network router 
   Router: class Router
     constructor: (@parent, x, y, z) ->
       @shp = new Shapes.Circle(0x0047ca, x, y, z, 15)
       @parent.obj3d.add(@shp.obj3d)
 
+  #Switch is a visual representation of an IP-network swtich
   Switch: class Switch
     constructor: (@parent, x, y, z) ->
       @shp= new Shapes.Rectangle(0x0047ca, x, y, z, 25, 25)
@@ -73,6 +79,7 @@ BaseElements = {
 
 }
 
+#The ElementBox holds Element classes which may be added to a system
 class ElementBox
   #Constructs an ElementBox object given a @ve visual environment
   constructor: (@ve) ->
@@ -103,6 +110,7 @@ class ElementBox
     @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 0))
     @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 0))
 
+#The Surface holds visual representations of Systems and Elements
 class Surface
   #Constructs a Surface object given a @ve visual environment
   constructor: (@ve) ->
@@ -111,7 +119,15 @@ class Surface
     @baseRect = new Shapes.Rectangle(0x262626, 0, 0, 0, @width, @height)
     @ve.scene.add(@baseRect.obj3d)
 
+#VisualEnvironment holds the state associated with the Threejs objects used
+#to render Surfaces and the ElementBox. This class also contains methods
+#for controlling and interacting with this group of Threejs objects.
 class VisualEnvironment
+
+  #Constructs a visual environment for the given @container. @container must
+  #be a reference to a <div> dom element. The Threejs canvas the visual 
+  #environment renders onto will be appended as a child of the supplied 
+  #container
   constructor: (@container) ->
     @scene = new THREE.Scene()
     @width = container.offsetWidth
