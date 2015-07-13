@@ -26,6 +26,8 @@ Shapes = {
       @obj3d.position.x = x
       @obj3d.position.y = y
       @obj3d.position.z = z
+      @obj3d.linep = new THREE.Vector3(x, y, 5)
+      @obj3d.lines = []
 
   Circle : class Circle
     constructor: (color, x, y, z, radius) ->
@@ -35,6 +37,8 @@ Shapes = {
       @obj3d.position.x = x
       @obj3d.position.y = y
       @obj3d.position.z = z
+      @obj3d.linep = new THREE.Vector3(x, y, 5)
+      @obj3d.lines = []
 
   Diamond: class Diamond
     constructor: (color, x, y, z, l) ->
@@ -51,6 +55,8 @@ Shapes = {
       @obj3d.position.x = x
       @obj3d.position.y = y
       @obj3d.position.z = z
+      @obj3d.linep = new THREE.Vector3(x, y, 5)
+      @obj3d.lines = []
 
   Line: class Line
     constructor: (color, from, to, z) ->
@@ -62,6 +68,7 @@ Shapes = {
       @obj3d.position.x = 0
       @obj3d.position.y = 0
       @obj3d.position.z = z
+      @obj3d.lines = []
 
 }
 
@@ -172,6 +179,14 @@ class Surface
     @ve.render()
     e
 
+  moveObject: (o, p) ->
+    o.position.x = p.x
+    o.position.y = p.y
+    o.linep.x = p.x
+    o.linep.y = p.y
+    ln.geom.verticesNeedUpdate = true for ln in o.lines
+    true
+
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
 #for controlling and interacting with this group of Threejs objects.
@@ -183,8 +198,8 @@ class VisualEnvironment
   #container
   constructor: (@container) ->
     @scene = new THREE.Scene()
-    @width = container.offsetWidth
-    @height = container.offsetHeight
+    @width = @container.offsetWidth
+    @height = @container.offsetHeight
     @camera = new THREE.OrthographicCamera(
       @width / -2, @width / 2,
       @height / 2, @height / -2,
@@ -273,19 +288,24 @@ class MouseHandler
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! lnk0 " + e.constructor.name
+      ###
       pos0 = new THREE.Vector3(
         ixs[0].object.position.x,
         ixs[0].object.position.y,
         5
       )
+      ###
+      pos0 = ixs[0].object.linep
       pos1 = new THREE.Vector3(
         ixs[0].object.position.x,
         ixs[0].object.position.y,
         5
       )
+
       @placingLink = new BaseElements.Link(@ve.surface.baseRect,
         pos0, pos1, 0, 0, 5
       )
+      ixs[0].object.lines.push(@placingLink.ln)
       @ve.container.onmousemove = (eve) => @linkingMove1(eve)
       @ve.container.onmousedown = (eve) => @linkingDown1(eve)
     else
@@ -298,6 +318,9 @@ class MouseHandler
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! lnk1 " + e.constructor.name
+      @placingLink.ln.geom.vertices[1] = ixs[0].object.linep
+      ixs[0].object.lines.push(@placingLink.ln)
+
       @ve.container.onmousemove = null
       @ve.container.onmousedown = (eve) => @baseDown(eve)
     else
@@ -312,8 +335,9 @@ class MouseHandler
 
     if bix.length > 0
       ox = @placingObject.shp.geom.boundingSphere.radius
-      @placingObject.shp.obj3d.position.x = bix[0].point.x
-      @placingObject.shp.obj3d.position.y = bix[0].point.y
+      @ve.surface.moveObject(@placingObject.shp.obj3d, bix[0].point)
+      #@placingObject.shp.obj3d.position.x = bix[0].point.x
+      #@placingObject.shp.obj3d.position.y = bix[0].point.y
       @ve.render()
 
   linkingMove0: (event) ->
