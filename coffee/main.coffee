@@ -52,6 +52,21 @@ Shapes = {
       @obj3d.position.y = y
       @obj3d.position.z = z
 
+  Line: class Line
+    constructor: (color, x, y, z, width, height) ->
+      @material = new THREE.LineBasicMaterial({color: color, linewidth: 3})
+      @geom = new THREE.Geometry()
+      w = width/2
+      h = height/2
+      @geom.vertices.push(
+        new THREE.Vector3(-w,  h, z),
+        new THREE.Vector3( w, -h, z)
+      )
+      @obj3d = new THREE.Line(@geom, @material)
+      @obj3d.position.x = x
+      @obj3d.position.y = y
+      @obj3d.position.z = z
+
 }
 
 #The BaseElements object holds classes which are Visual representations of the
@@ -82,10 +97,21 @@ BaseElements = {
   #Switch is a visual representation of an IP-network swtich
   Switch: class Switch
     constructor: (@parent, x, y, z) ->
-      @shp= new Shapes.Rectangle(0x0047ca, x, y, z, 25, 25)
+      @shp = new Shapes.Rectangle(0x0047ca, x, y, z, 25, 25)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
     
+    #cyjs generates the json for this object
+    cyjs: ->
+
+  Link: class Link
+    constructor: (@parent, x, y, z) ->
+      @shp = new Shapes.Rectangle(@parent.material.color, x, y, z, 25, 25)
+      @ln = new Shapes.Line(0xababab, 0, 0, 5, 25, 25)
+      @shp.obj3d.userData = this
+      @shp.obj3d.add(@ln.obj3d)
+      @parent.obj3d.add(@shp.obj3d)
+
     #cyjs generates the json for this object
     cyjs: ->
 
@@ -122,6 +148,7 @@ class ElementBox
     @addElement((box, x, y) -> new BaseElements.Controller(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 5))
+    @addElement((box, x, y) -> new BaseElements.Link(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 class Surface
