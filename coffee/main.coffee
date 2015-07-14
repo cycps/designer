@@ -231,6 +231,22 @@ class Surface
     obj.position.z = z
     obj
 
+  glowCube: (width, height, depth, x, y, z) ->
+    geom = new THREE.BoxGeometry(width, height, depth, 2, 2, 2)
+    mat = @glowMaterial()
+    obj = new THREE.Mesh(geom, mat)
+    obj.position.x = x
+    obj.position.y = y
+    obj.position.z = z
+    modifier = new THREE.SubdivisionModifier(2)
+    modifier.modify(geom)
+    obj
+
+  glowDiamond: (w, h, d, x, y, z) ->
+    obj = @glowCube(w, h, d, x, y, z)
+    obj.rotateZ(Math.PI/4)
+    obj
+
   selectObj: (obj) ->
     
     @clearSelection()
@@ -240,7 +256,14 @@ class Surface
       console.log obj
       p = obj.shp.obj3d.position
       s = obj.shp.geom.boundingSphere.radius + 3
-      gs = @glowSphere(s, p.x, p.y, p.z)
+      if obj.shp instanceof Shapes.Circle
+        gs = @glowSphere(s, p.x, p.y, p.z)
+      else if obj.shp instanceof Shapes.Rectangle
+        l = s*1.5
+        gs = @glowCube(l, l, l, p.x, p.y, p.z)
+      else if obj.shp instanceof Shapes.Diamond
+        l = s*1.5
+        gs = @glowDiamond(l, l, l, p.x, p.y, p.z)
       gs.userData = obj
       obj.glowBubble = gs
       @selectGroup.add(gs)
