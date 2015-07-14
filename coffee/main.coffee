@@ -346,6 +346,8 @@ class MouseHandler
         e = ixs[0].object.userData
         console.log "! ebox select -- " + e.constructor.name
         console.log e
+        #TODO double click should lock linking until link icon clicked again
+        #     this way many things may be linked without going back to the icon
         if e instanceof Link
           console.log "! linking objects"
           @ve.container.onmousemove = (eve) => @linkingMove0(eve)
