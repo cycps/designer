@@ -229,6 +229,7 @@ class Surface
 
   addElement: (ef, x, y) ->
     e = new ef.constructor(@baseRect, x, y, 50)
+    e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
     @ve.render()
     e
 
@@ -345,6 +346,17 @@ class Surface
     @clearPropsGUI()
     @ve.render()
 
+class NameManager
+  constructor: () ->
+    @names = new Array()
+
+  getName: (s) ->
+    if !@names[s]?
+      @names[s] = 0
+    else
+      @names[s]++
+
+    s + @names[s]
 
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
@@ -372,6 +384,7 @@ class VisualEnvironment
     @camera.position.z = 200
     @mouseh = new MouseHandler(this)
     @raycaster = new THREE.Raycaster()
+    @namemanager = new NameManager()
 
   render: ->
     @renderer.clear()
