@@ -5,7 +5,7 @@ root.go = ->
   g.ve = new VisualEnvironment(document.getElementById("surface"))
   g.ve.ebox = new ElementBox(g.ve)
   g.ve.surface = new Surface(g.ve)
-  #g.ve.surface.glowCircle(20)
+  g.ve.datgui = new dat.GUI()
   g.ve.render(g.ve)
 
 #Global event handlers
@@ -102,6 +102,10 @@ BaseElements = {
       @shp = new Shapes.Circle(0x0047ca, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+      #TODO you are here, all objects with changable props should have a props object
+      @props = {
+        capacity: 100
+      }
     
     #cyjs generates the json for this object
     cyjs: ->
