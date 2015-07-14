@@ -150,6 +150,7 @@ BaseElements = {
 
   Link: class Link
     constructor: (@parent, from, to, x, y, z, isIcon = false) ->
+      #TODO: s/ln/shp/g for consistency
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
       @props = {
@@ -232,6 +233,16 @@ class Surface
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
     @ve.render()
     e
+  
+  updateLink: (ln) ->
+    ln.geom.verticesNeedUpdate = true
+    ln.geom.lineDistancesNeedUpdate = true
+    ln.geom.elementsNeedUpdate = true
+    ln.geom.normalsNeedUpdate = true
+    ln.geom.computeFaceNormals()
+    ln.geom.computeVertexNormals()
+    ln.geom.computeBoundingSphere()
+    ln.geom.computeBoundingBox()
 
   moveObject: (o, p) ->
     o.position.x = p.x
@@ -243,7 +254,7 @@ class Surface
       o.userData.glowBubble.position.x = p.x
       o.userData.glowBubble.position.y = p.y
 
-    ln.geom.verticesNeedUpdate = true for ln in o.lines
+    @updateLink(ln) for ln in o.lines
     true
 
   moveSelection: -> #TODO
@@ -324,16 +335,37 @@ class Surface
     if not obj.glowBubble?
       console.log "! select"
       console.log obj
-      p = obj.shp.obj3d.position
-      s = obj.shp.geom.boundingSphere.radius + 3
       if obj.shp instanceof Shapes.Circle
+        p = obj.shp.obj3d.position
+        s = obj.shp.geom.boundingSphere.radius + 3
         gs = @glowSphere(s, p.x, p.y, p.z)
       else if obj.shp instanceof Shapes.Rectangle
+        p = obj.shp.obj3d.position
+        s = obj.shp.geom.boundingSphere.radius + 3
         l = s*1.5
         gs = @glowCube(l, l, l, p.x, p.y, p.z)
       else if obj.shp instanceof Shapes.Diamond
+        p = obj.shp.obj3d.position
+        s = obj.shp.geom.boundingSphere.radius + 3
         l = s*1.5
         gs = @glowDiamond(l, l, l, p.x, p.y, p.z)
+      else if obj.ln instanceof Shapes.Line
+        d = 10
+        h = 10
+        v0 = obj.ln.geom.vertices[0]
+        v1 = obj.ln.geom.vertices[obj.ln.geom.vertices.length - 1]
+        #w = Math.abs(v0.x - v1.x)
+        w = obj.ln.geom.boundingSphere.radius * 2
+        x = (v0.x + v1.x) / 2
+        y = (v0.y + v1.y) / 2
+        z = 5
+        gs = @glowCube(w, h, d, x, y, z)
+        theta = Math.atan2(v0.y - v1.y, v0.x - v1.x)
+        gs.rotateZ(theta)
+      else
+        console.log "unkown object to select"
+        console.log obj
+
       gs.userData = obj
       obj.glowBubble = gs
       @selectGroup.add(gs)
@@ -357,6 +389,19 @@ class NameManager
       @names[s]++
 
     s + @names[s]
+
+#TODO you are here
+class ExperimentControl
+  constructor: (@ve) ->
+  
+  expJson: ->
+
+  swapIn: ->
+
+  swapOut: ->
+
+  update: ->
+
 
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
@@ -384,6 +429,7 @@ class VisualEnvironment
     @camera.position.z = 200
     @mouseh = new MouseHandler(this)
     @raycaster = new THREE.Raycaster()
+    @raycaster.linePrecision = 10
     @namemanager = new NameManager()
 
   render: ->
@@ -395,7 +441,7 @@ class VisualEnvironment
 class MouseHandler
 
   constructor: (@ve) ->
-    @pos = new THREE.Vector2(0, 0)
+    @pos = new THREE.Vector3(0, 0, 1)
 
   ondown: (event) -> @baseDown(event)
   
@@ -423,8 +469,8 @@ class MouseHandler
     @updateMouse(event)
     @ve.raycaster.setFromCamera(@pos, @ve.camera)
     ixs = @ve.raycaster.intersectObjects(@ve.scene.children, true)
-    if ixs.length > 1 and
-      ixs[1].object.userData instanceof ElementBox and
+    if ixs.length > 2 and
+      ixs[ixs.length - 2].object.userData instanceof ElementBox and
       ixs[0].object.userData.cyjs?
         e = ixs[0].object.userData
         console.log "! ebox select -- " + e.constructor.name
@@ -442,7 +488,7 @@ class MouseHandler
           @ve.container.onmouseup = (eve) => @placingUp(eve)
 
     else if ixs.length > 1 and
-      ixs[1].object.userData instanceof Surface and
+      ixs[ixs.length - 1].object.userData instanceof Surface and
       ixs[0].object.userData.cyjs?
         e = ixs[0].object.userData
         console.log "! surface select -- " + e.constructor.name
@@ -454,10 +500,8 @@ class MouseHandler
 
     else if ixs.length > 0 and
       ixs[0].object.userData instanceof Surface
-        console.log "! surface clear"
+        console.log "! surface clear " + ixs.length
         @ve.surface.clearSelection()
-
-
 
   linkingDown0: (event) ->
     @ve.raycaster.setFromCamera(@pos, @ve.camera)
@@ -481,7 +525,6 @@ class MouseHandler
     else
       console.log "! lnk0 miss"
 
-
   linkingDown1: (event) ->
     @ve.raycaster.setFromCamera(@pos, @ve.camera)
     ixs = @ve.raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
@@ -490,6 +533,9 @@ class MouseHandler
       console.log "! lnk1 " + e.constructor.name
       @placingLink.ln.geom.vertices[1] = ixs[0].object.linep
       ixs[0].object.lines.push(@placingLink.ln)
+
+      @ve.surface.updateLink(@placingLink.ln)
+      
 
       @ve.container.onmousemove = null
       @ve.container.onmousedown = (eve) => @baseDown(eve)
