@@ -5,7 +5,7 @@ root.go = ->
   g.ve = new VisualEnvironment(document.getElementById("surface"))
   g.ve.ebox = new ElementBox(g.ve)
   g.ve.surface = new Surface(g.ve)
-  g.ve.datgui = new dat.GUI()
+  g.ve.datgui = null
   g.ve.render(g.ve)
 
 #Global event handlers
@@ -92,6 +92,16 @@ BaseElements = {
       @shp = new Shapes.Diamond(0x007474, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+      @props = {
+        name: "ctl",
+        software: [],
+        os: "Ubuntu1504-54-STD"
+      }
+
+    showProps: (f) ->
+      f.add(@props, 'name')
+      #f.add(@props, 'software')
+      f.add(@props, 'os')
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -102,10 +112,18 @@ BaseElements = {
       @shp = new Shapes.Circle(0x0047ca, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
-      #TODO you are here, all objects with changable props should have a props object
+      #TODO you are here, all objects with changable props should have a props 
+      #object
       @props = {
-        capacity: 100
+        name: "rtr",
+        capacity: 100,
+        latency: 0
       }
+
+    showProps: (f) ->
+      f.add(@props, 'name')
+      f.add(@props, 'capacity')
+      f.add(@props, 'latency')
     
     #cyjs generates the json for this object
     cyjs: ->
@@ -116,6 +134,16 @@ BaseElements = {
       @shp = new Shapes.Rectangle(0x0047ca, x, y, z, 25, 25)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+      @props = {
+        name: "sw"
+        capacity: 100,
+        latency: 0
+      }
+
+    showProps: (f) ->
+      f.add(@props, 'name')
+      f.add(@props, 'capacity')
+      f.add(@props, 'latency')
     
     #cyjs generates the json for this object
     cyjs: ->
@@ -124,6 +152,11 @@ BaseElements = {
     constructor: (@parent, from, to, x, y, z, isIcon = false) ->
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
+      @props = {
+        name: "lnk",
+        capacity: 100,
+        latency: 0
+      }
 
       #TODO if ln itself is clicked on this messes up selection logic 
       if isIcon
@@ -133,6 +166,11 @@ BaseElements = {
         @parent.obj3d.add(@shp.obj3d)
       else
         @parent.obj3d.add(@ln.obj3d)
+    
+    showProps: (f) ->
+      f.add(@props, 'name')
+      f.add(@props, 'capacity')
+      f.add(@props, 'latency')
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -208,7 +246,6 @@ class Surface
     true
 
   moveSelection: -> #TODO
-
   
   glowMaterial: () ->
     cam = @.ve.camera
@@ -251,9 +288,37 @@ class Surface
     obj.rotateZ(Math.PI/4)
     obj
 
+  clearPropsGUI: ->
+    if @ve.datgui?
+      @ve.datgui.destroy()
+      @ve.datgui = null
+
+  showPropsGUI: (s) ->
+    @ve.datgui = new dat.GUI()
+
+    addElem = (d, k, v) ->
+      if !d[k]?
+        d[k] = [v]
+      else
+        d[k].push(v)
+
+    dict = new Array()
+    addElem(dict, x.constructor.name, x) for x in s
+
+    addGuiElems = (typ, xs) =>
+      f = @ve.datgui.addFolder(typ)
+      x.showProps(f) for x in xs
+      f.open()
+
+    #@ve.datgui.addFolder(k) for k,v of dict
+
+    addGuiElems(k, v) for k,v of dict
+
+
   selectObj: (obj) ->
     
     @clearSelection()
+    @showPropsGUI([obj])
 
     if not obj.glowBubble?
       console.log "! select"
@@ -277,6 +342,7 @@ class Surface
   clearSelection: ->
     delete gb.userData.glowBubble for gb in @selectGroup.children
     @selectGroup.children = []
+    @clearPropsGUI()
     @ve.render()
 
 
