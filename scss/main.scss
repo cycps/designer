@@ -3,11 +3,11 @@ $light-color: #cacaca;
 $dark-color: #529aa1;
 
 body {
-  font: 100% $font-stack;
   color: $light-color;
   background-color: $dark-color;
   overflow: hidden;
 }
+
 
 #surface {
   position: absolute;
@@ -25,3 +25,37 @@ body {
   width: 100px;
   background-color: rgba(#ffffff, 0);
 }
+
+#expControl {
+  position: absolute;
+  left: 50%;
+  bottom: 0px;
+  top: auto;
+  #padding-bottom: 5px;
+  padding-top: 5px;
+  //background: #111;
+  border-left: 5px solid #111;
+  border-right: 5px solid #111;
+}
+
+button {
+  font: 11px 'Lucida Grande', sans-serif;
+  background: #1a1a1a;
+  line-height: 27px;
+  color: white;
+  border: none;
+  border-bottom: 3px solid #1ed36f;
+  border-left: 1px solid #333;
+  border-right: 1px solid #333;
+}
+
+button:hover {
+  background: #303030
+}
+
+button:active {
+  color: #1ed36f;
+  background: #111;
+}
+
+button:focus { outline: 0; }

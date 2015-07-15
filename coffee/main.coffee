@@ -12,6 +12,9 @@ root.go = ->
 root.vz_mousedown = (event) ->
   g.ve.mouseh.ondown(event)
 
+root.swapcontrol = (event) =>
+  g.ve.xpcontrol.swapIn()
+
 #Global state holder
 g = {}
 
@@ -136,7 +139,7 @@ BaseElements = {
       @parent.obj3d.add(@shp.obj3d)
       @props = {
         name: "sw"
-        capacity: 100,
+        capacity: 1000,
         latency: 0
       }
 
@@ -150,13 +153,14 @@ BaseElements = {
 
   Link: class Link
     constructor: (@parent, from, to, x, y, z, isIcon = false) ->
+      @endpoint = [null, null]
       #TODO: s/ln/shp/g for consistency
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
       @props = {
         name: "lnk",
-        capacity: 100,
-        latency: 0
+        capacity: 100
+        #latency: 0
       }
 
       #TODO if ln itself is clicked on this messes up selection logic 
@@ -171,7 +175,8 @@ BaseElements = {
     showProps: (f) ->
       f.add(@props, 'name')
       f.add(@props, 'capacity')
-      f.add(@props, 'latency')
+      if @props.latency?
+        f.add(@props, 'latency')
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -227,10 +232,12 @@ class Surface
     @ve.scene.add(@baseRect.obj3d)
     @selectGroup = new THREE.Group()
     @ve.scene.add(@selectGroup)
+    @elements = []
 
   addElement: (ef, x, y) ->
     e = new ef.constructor(@baseRect, x, y, 50)
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
+    @elements.push(e)
     @ve.render()
     e
   
@@ -395,8 +402,11 @@ class ExperimentControl
   constructor: (@ve) ->
   
   expJson: ->
+    console.log "Generating experiment json for " + @ve.surface.elements.length +
+      " elements"
 
   swapIn: ->
+    @expJson()
 
   swapOut: ->
 
@@ -431,6 +441,7 @@ class VisualEnvironment
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
     @namemanager = new NameManager()
+    @xpcontrol = new ExperimentControl(this)
 
   render: ->
     @renderer.clear()
@@ -519,6 +530,9 @@ class MouseHandler
       @placingLink = new BaseElements.Link(@ve.surface.baseRect,
         pos0, pos1, 0, 0, 5
       )
+      @ve.surface.elements.push(@placingLink)
+      @placingLink.props.name = @ve.namemanager.getName("lnk")
+      @placingLink.endpoint[0] = ixs[0].object.userData
       ixs[0].object.lines.push(@placingLink.ln)
       @ve.container.onmousemove = (eve) => @linkingMove1(eve)
       @ve.container.onmousedown = (eve) => @linkingDown1(eve)
@@ -533,9 +547,16 @@ class MouseHandler
       console.log "! lnk1 " + e.constructor.name
       @placingLink.ln.geom.vertices[1] = ixs[0].object.linep
       ixs[0].object.lines.push(@placingLink.ln)
+      
+      @placingLink.endpoint[1] = ixs[0].object.userData
 
       @ve.surface.updateLink(@placingLink.ln)
-      
+      if @placingLink.endpoint[0] instanceof BaseElements.Router and
+        @placingLink.endpoint[1] instanceof BaseElements.Router
+          @placingLink.props.latency = 7
+      else
+        @placingLink.props.capacity = 1000
+           
 
       @ve.container.onmousemove = null
       @ve.container.onmousedown = (eve) => @baseDown(eve)
