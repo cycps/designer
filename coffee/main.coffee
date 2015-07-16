@@ -185,12 +185,14 @@ BaseElements = {
       @endpoint[0] instanceof Router and @endpoint[1] instanceof Router
 
     applyWanProps: ->
-      @props.a_name = @endpoint[0].name
-      @props.a_sys = @endpoint[0].sys
-      @props.b_name = @endpoint[1].name
-      @props.b_sys = @endpoint[1].sys
       @props.capacity = 100
       @props.latency = 7
+
+    setEndpointData: ->
+      @props.a_name = @endpoint[0].props.name
+      @props.a_sys = @endpoint[0].props.sys
+      @props.b_name = @endpoint[1].props.name
+      @props.b_sys = @endpoint[1].props.sys
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
@@ -438,15 +440,15 @@ class ExperimentControl
 
     linkAdd = (l) ->
       switch
-        when l.isInternet then data.wan_links.push(l)
-        else data.wan_links.push(l)
+        when l.isInternet() then data.wan_links.push(l.props)
+        else data.lan_links.push(l.props)
 
     add = (e) ->
       switch
         when e instanceof BaseElements.Computer then data.computers.push(e.props)
         when e instanceof BaseElements.Router then data.routers.push(e.props)
         when e instanceof BaseElements.Switch then data.switches.push(e.props)
-        when e instanceof BaseElements.Link then linkAdd(e.props)
+        when e instanceof BaseElements.Link then linkAdd(e)
         else console.log('unkown element -- ', e)
 
     add(e) for e in @ve.surface.elements
@@ -603,6 +605,7 @@ class MouseHandler
 
       @ve.surface.updateLink(@placingLink.ln)
       @placingLink.ifInternetToWanLink()
+      @placingLink.setEndpointData()
 
       ###
       if @placingLink.endpoint[0] instanceof BaseElements.Router and
