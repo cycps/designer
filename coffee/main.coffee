@@ -88,22 +88,23 @@ Shapes = {
 #objects that comprise a Cypress networked CPS system
 BaseElements = {
  
-  #The Controller class is a visual representation of a controller e.g., a
-  #computer that hosts control code
-  Controller: class Controller
+  #The Computer class is a representation of a computer
+  Computer: class Computer
     constructor: (@parent, x, y, z) ->
       @shp = new Shapes.Diamond(0x007474, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
         name: "ctl",
-        software: [],
-        os: "Ubuntu1504-54-STD"
+        sys: "",
+        os: "Ubuntu1504-54-STD",
+        start_script: ""
       }
 
     showProps: (f) ->
       f.add(@props, 'name')
-      #f.add(@props, 'software')
+      f.add(@props, 'sys')
+      f.add(@props, 'start_script')
       f.add(@props, 'os')
 
     #cyjs generates the json for this object
@@ -119,12 +120,14 @@ BaseElements = {
       #object
       @props = {
         name: "rtr",
+        sys: "",
         capacity: 100,
         latency: 0
       }
 
     showProps: (f) ->
       f.add(@props, 'name')
+      f.add(@props, 'sys')
       f.add(@props, 'capacity')
       f.add(@props, 'latency')
     
@@ -138,13 +141,15 @@ BaseElements = {
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
-        name: "sw"
+        name: "sw",
+        sys: "",
         capacity: 1000,
         latency: 0
       }
 
     showProps: (f) ->
       f.add(@props, 'name')
+      f.add(@props, 'sys')
       f.add(@props, 'capacity')
       f.add(@props, 'latency')
     
@@ -159,8 +164,12 @@ BaseElements = {
       @ln.obj3d.userData = this
       @props = {
         name: "lnk",
-        capacity: 100
-        #latency: 0
+        capacity: 1000,
+        a_name: null,
+        a_sys: null,
+        b_name:null,
+        b_sys: null,
+        latency: null
       }
 
       #TODO if ln itself is clicked on this messes up selection logic 
@@ -171,11 +180,25 @@ BaseElements = {
         @parent.obj3d.add(@shp.obj3d)
       else
         @parent.obj3d.add(@ln.obj3d)
+
+    isInternet: ->
+      @endpoint[0] instanceof Router and @endpoint[1] instanceof Router
+
+    applyWanProps: ->
+      @props.a_name = @endpoint[0].name
+      @props.a_sys = @endpoint[0].sys
+      @props.b_name = @endpoint[1].name
+      @props.b_sys = @endpoint[1].sys
+      @props.capacity = 100
+      @props.latency = 7
+
+    ifInternetToWanLink:  ->
+      @applyWanProps() if @isInternet()
     
     showProps: (f) ->
       f.add(@props, 'name')
       f.add(@props, 'capacity')
-      if @props.latency?
+      if @isInternet()
         f.add(@props, 'latency')
 
     #cyjs generates the json for this object
@@ -211,7 +234,7 @@ class ElementBox
 
   #addBaseElements adds the common base elements to the ElementBox
   addBaseElements: ->
-    @addElement((box, x, y) -> new BaseElements.Controller(box, x, y, 5))
+    @addElement((box, x, y) -> new BaseElements.Computer(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 5))
     @addElement((box, x, y) ->
@@ -405,6 +428,34 @@ class ExperimentControl
     console.log "Generating experiment json for " + @ve.surface.elements.length +
       " elements"
 
+    data = {
+      computers: [],
+      routers: [],
+      switches: [],
+      lan_links: [],
+      wan_links: []
+    }
+
+    linkAdd = (l) ->
+      switch
+        when l.isInternet then data.wan_links.push(l)
+        else data.wan_links.push(l)
+
+    add = (e) ->
+      switch
+        when e instanceof BaseElements.Computer then data.computers.push(e.props)
+        when e instanceof BaseElements.Router then data.routers.push(e.props)
+        when e instanceof BaseElements.Switch then data.switches.push(e.props)
+        when e instanceof BaseElements.Link then linkAdd(e.props)
+        else console.log('unkown element -- ', e)
+
+    add(e) for e in @ve.surface.elements
+
+    console.log(data)
+    console.log(JSON.stringify(data, null, 2))
+
+    data
+
   swapIn: ->
     @expJson()
 
@@ -551,11 +602,15 @@ class MouseHandler
       @placingLink.endpoint[1] = ixs[0].object.userData
 
       @ve.surface.updateLink(@placingLink.ln)
+      @placingLink.ifInternetToWanLink()
+
+      ###
       if @placingLink.endpoint[0] instanceof BaseElements.Router and
         @placingLink.endpoint[1] instanceof BaseElements.Router
           @placingLink.props.latency = 7
       else
         @placingLink.props.capacity = 1000
+      ###
            
 
       @ve.container.onmousemove = null
