@@ -2,11 +2,12 @@
 <html>
   <head>
     <title>Cypress</title>
-    <link rel="stylesheet" type="text/css" href="../scss/main.css">
-    <script type="text/javascript" src="../3p/js/three.min.js"></script>
-    <script type="text/javascript" src="../3p/js/SubdivisionModifier.js"></script>
-    <script type="text/javascript" src="../3p/js/dat.gui.min.js"></script>
-    <script type="text/javascript" src="../coffee/main.js"></script>
+    <link rel="stylesheet" type="text/css" href="scss/main.css">
+    <script type="text/javascript" src="3p/js/three.min.js"></script>
+    <script type="text/javascript" src="3p/js/SubdivisionModifier.js"></script>
+    <script type="text/javascript" src="3p/js/dat.gui.min.js"></script>
+    <script type="text/javascript" src="coffee/main.js"></script>
+    <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
   </head>
   <body onload="go()">
   <!-- ---------------- Custom Shader Code ------------------------ -->
@@ -39,6 +40,7 @@
     <div id="surface" onmousedown="vz_mousedown(event)"></div>
     <div id="expControl">
       <button id="swapControl" onclick="swapcontrol()"> Swap In </button>
+      <button id="save" onclick="save()"> Save </button>
     </div>
     <!-- <div id="elementbox" ></div> -->
   </body>

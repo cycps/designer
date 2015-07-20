@@ -15,6 +15,9 @@ root.vz_mousedown = (event) ->
 root.swapcontrol = (event) =>
   g.ve.xpcontrol.swapIn()
 
+root.save = () =>
+  g.ve.xpcontrol.save()
+
 #Global state holder
 g = {}
 
@@ -457,6 +460,21 @@ class ExperimentControl
     console.log(JSON.stringify(data, null, 2))
 
     data
+
+  save: ->
+    console.log("saving experiment")
+
+    console.log("to the bakery!")
+
+    console.log("getting")
+    $.get "addie/bakery", (data) =>
+      console.log("bakery GET")
+      console.log(data)
+    
+    console.log("posting")
+    $.post "addie/bakery", (data) =>
+      console.log("bakery POST")
+      console.log(data)
 
   swapIn: ->
     @expJson()
