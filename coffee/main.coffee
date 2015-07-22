@@ -21,6 +21,8 @@ root.save = () =>
 #Global state holder
 g = {}
 
+dsg = "design47"
+
 #Shapes contains a collection of classes that comprise the basic shapes used to
 #represent Cypress CPS elements
 Shapes = {
@@ -265,6 +267,7 @@ class Surface
   addElement: (ef, x, y) ->
     e = new ef.constructor(@baseRect, x, y, 50)
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
+    e.props.design = dsg
     @elements.push(e)
     @ve.render()
     e
@@ -513,11 +516,34 @@ class VisualEnvironment
     @raycaster.linePrecision = 10
     @namemanager = new NameManager()
     @xpcontrol = new ExperimentControl(this)
+    @addie = new Addie(this)
 
   render: ->
     @renderer.clear()
     @renderer.clearDepth()
     @renderer.render(@scene, @camera)
+
+
+#This is the client side Addie, it talks to the Addie at cypress.deterlab.net
+#to manage a design
+class Addie
+  constructor: (@ve) ->
+
+  update: (x) ->
+    console.log("updating object")
+    console.log(x)
+    
+    msg = { Computers: [] }
+
+    switch
+      when x instanceof BaseElements.Computer then msg.Computers.push(x.props)
+      else console.log('update not implemented for object')
+
+    console.log(msg)
+
+    $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
+      console.log("update post response")
+      console.log(data)
 
 #Mouse handler encapsulates the logic of dealing with mouse events
 class MouseHandler
@@ -643,6 +669,7 @@ class MouseHandler
   placingUp: (event) ->
     console.log "plop"
     #push that muffin to the bakery!
+    @ve.addie.update(@placingObject)
     @ve.container.onmousemove = null
     @ve.container.onmousedown = (eve) => @baseDown(eve)
     @ve.container.onmouseup = null
