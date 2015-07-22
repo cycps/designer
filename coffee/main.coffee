@@ -642,6 +642,7 @@ class MouseHandler
   #onmouseuphandlers
   placingUp: (event) ->
     console.log "plop"
+    #push that muffin to the bakery!
     @ve.container.onmousemove = null
     @ve.container.onmousedown = (eve) => @baseDown(eve)
     @ve.container.onmouseup = null
