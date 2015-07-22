@@ -105,12 +105,17 @@ BaseElements = {
         os: "Ubuntu1504-54-STD",
         start_script: ""
       }
+      @id = {
+        name: "c"
+        sys: ""
+        design: dsg
+      }
 
     showProps: (f) ->
-      f.add(@props, 'name')
-      f.add(@props, 'sys')
-      f.add(@props, 'start_script')
-      f.add(@props, 'os')
+      c = f.add(@props, 'name')
+      c = f.add(@props, 'sys')
+      c = f.add(@props, 'start_script')
+      c = f.add(@props, 'os')
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -364,6 +369,15 @@ class Surface
 
     addGuiElems(k, v) for k,v of dict
 
+    $(@ve.datgui.domElement).focusout () =>
+      @ve.addie.update(x) for x in s
+
+    true
+
+    #@ve.datgui.onChange () ->
+    #  @ve.addie.update(x) for x in s
+
+
 
   selectObj: (obj) ->
     
@@ -533,10 +547,15 @@ class Addie
     console.log("updating object")
     console.log(x)
     
-    msg = { Computers: [] }
+    msg = {
+      Computers: [],
+      Switches: []
+    }
 
+    ido = { OID: x.id, Data: x.props }
     switch
-      when x instanceof BaseElements.Computer then msg.Computers.push(x.props)
+      when x instanceof BaseElements.Computer then msg.Computers.push(ido)
+      when x instanceof BaseElements.Switch then msg.Switches.push(x.props)
       else console.log('update not implemented for object')
 
     console.log(msg)
@@ -544,6 +563,8 @@ class Addie
     $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
       console.log("update post response")
       console.log(data)
+      x.id.name = x.props.name
+      x.id.sys = x.props.sys
 
 #Mouse handler encapsulates the logic of dealing with mouse events
 class MouseHandler
