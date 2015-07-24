@@ -547,16 +547,22 @@ class Addie
     console.log("updating object")
     console.log(x)
     
+    ###
     msg = {
       Computers: [],
       Switches: []
     }
+    ###
+    msg = { Elements: [] }
 
-    ido = { OID: x.id, Data: x.props }
+    ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
+    msg.Elements.push(ido)
+    ###
     switch
       when x instanceof BaseElements.Computer then msg.Computers.push(ido)
       when x instanceof BaseElements.Switch then msg.Switches.push(x.props)
       else console.log('update not implemented for object')
+    ###
 
     console.log(msg)
 
