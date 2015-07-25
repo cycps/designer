@@ -117,6 +117,9 @@ BaseElements = {
       c = f.add(@props, 'start_script')
       c = f.add(@props, 'os')
 
+    links: []
+
+
     #cyjs generates the json for this object
     cyjs: ->
 
@@ -146,6 +149,8 @@ BaseElements = {
       f.add(@props, 'capacity')
       f.add(@props, 'latency')
     
+    links: []
+    
     #cyjs generates the json for this object
     cyjs: ->
 
@@ -173,6 +178,8 @@ BaseElements = {
       f.add(@props, 'capacity')
       f.add(@props, 'latency')
     
+    links: []
+    
     #cyjs generates the json for this object
     cyjs: ->
 
@@ -184,12 +191,13 @@ BaseElements = {
       @ln.obj3d.userData = this
       @props = {
         name: "link0",
+        sys: "",
         capacity: 1000,
-        a_name: null,
-        a_sys: null,
-        b_name:null,
-        b_sys: null,
-        latency: null
+        latency: null,
+        endpoints: [
+          {name: "", sys: "", design: dsg, ifname: ""},
+          {name: "", sys: "", design: dsg, ifname: ""}
+        ]
       }
       @id = {
         name: "link0"
@@ -214,16 +222,25 @@ BaseElements = {
       @props.latency = 7
 
     setEndpointData: ->
+      ###
       @props.a_name = @endpoint[0].props.name
       @props.a_sys = @endpoint[0].props.sys
       @props.b_name = @endpoint[1].props.name
       @props.b_sys = @endpoint[1].props.sys
+      ###
+      @props.endpoints[0].name = @endpoint[0].props.name
+      @props.endpoints[0].sys = @endpoint[0].props.sys
+      #@props.endpoints[0].ifname = @endpoint[0].?
+      @props.endpoints[1].name = @endpoint[1].props.name
+      @props.endpoints[1].sys = @endpoint[1].props.sys
+      #@props.endpoints[1].ifname = @endpoint[1].?
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
     
     showProps: (f) ->
       f.add(@props, 'name')
+      f.add(@props, 'sys')
       f.add(@props, 'capacity')
       if @isInternet()
         f.add(@props, 'latency')
@@ -558,26 +575,14 @@ class VisualEnvironment
 class Addie
   constructor: (@ve) ->
 
-  update: (x) ->
+  update: (x) =>
     console.log("updating object")
     console.log(x)
     
-    ###
-    msg = {
-      Computers: [],
-      Switches: []
-    }
-    ###
     msg = { Elements: [] }
 
     ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
     msg.Elements.push(ido)
-    ###
-    switch
-      when x instanceof BaseElements.Computer then msg.Computers.push(ido)
-      when x instanceof BaseElements.Switch then msg.Switches.push(x.props)
-      else console.log('update not implemented for object')
-    ###
 
     console.log(msg)
 
@@ -586,6 +591,16 @@ class Addie
       console.log(data)
       x.id.name = x.props.name
       x.id.sys = x.props.sys
+
+    updateLink = (l) =>
+      l.setEndpointData()
+      @update(l)
+
+
+    if x.links?
+      updateLink(l) for l in x.links
+
+    true
 
 #Mouse handler encapsulates the logic of dealing with mouse events
 class MouseHandler
@@ -672,6 +687,7 @@ class MouseHandler
       @ve.surface.elements.push(@placingLink)
       @placingLink.props.name = @ve.namemanager.getName("lnk")
       @placingLink.endpoint[0] = ixs[0].object.userData
+      @placingLink.endpoint[0].links.push(@placingLink)
       ixs[0].object.lines.push(@placingLink.ln)
       @ve.container.onmousemove = (eve) => @linkingMove1(eve)
       @ve.container.onmousedown = (eve) => @linkingDown1(eve)
@@ -688,19 +704,14 @@ class MouseHandler
       ixs[0].object.lines.push(@placingLink.ln)
       
       @placingLink.endpoint[1] = ixs[0].object.userData
+      @placingLink.endpoint[1].links.push(@placingLink)
 
       @ve.surface.updateLink(@placingLink.ln)
       @placingLink.ifInternetToWanLink()
       @placingLink.setEndpointData()
 
-      ###
-      if @placingLink.endpoint[0] instanceof BaseElements.Router and
-        @placingLink.endpoint[1] instanceof BaseElements.Router
-          @placingLink.props.latency = 7
-      else
-        @placingLink.props.capacity = 1000
-      ###
-           
+      @ve.addie.update(@placingLink)
+
 
       @ve.container.onmousemove = null
       @ve.container.onmousedown = (eve) => @baseDown(eve)
@@ -709,9 +720,8 @@ class MouseHandler
 
   #onmouseuphandlers
   placingUp: (event) ->
-    console.log "plop"
-    #push that muffin to the bakery!
     @ve.addie.update(@placingObject)
+
     @ve.container.onmousemove = null
     @ve.container.onmousedown = (eve) => @baseDown(eve)
     @ve.container.onmouseup = null
