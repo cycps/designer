@@ -100,13 +100,13 @@ BaseElements = {
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
-        name: "ctl",
+        name: "computer0",
         sys: "",
         os: "Ubuntu1504-54-STD",
         start_script: ""
       }
       @id = {
-        name: "c"
+        name: "computer0"
         sys: ""
         design: dsg
       }
@@ -129,10 +129,15 @@ BaseElements = {
       #TODO you are here, all objects with changable props should have a props 
       #object
       @props = {
-        name: "rtr",
+        name: "router0",
         sys: "",
         capacity: 100,
         latency: 0
+      }
+      @id = {
+        name: "router0"
+        sys: ""
+        design: dsg
       }
 
     showProps: (f) ->
@@ -151,10 +156,15 @@ BaseElements = {
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
-        name: "sw",
+        name: "switch0",
         sys: "",
         capacity: 1000,
         latency: 0
+      }
+      @id = {
+        name: "switch0"
+        sys: ""
+        design: dsg
       }
 
     showProps: (f) ->
@@ -173,13 +183,18 @@ BaseElements = {
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
       @props = {
-        name: "lnk",
+        name: "link0",
         capacity: 1000,
         a_name: null,
         a_sys: null,
         b_name:null,
         b_sys: null,
         latency: null
+      }
+      @id = {
+        name: "link0"
+        sys: ""
+        design: dsg
       }
 
       #TODO if ln itself is clicked on this messes up selection logic 
