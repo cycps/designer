@@ -192,6 +192,7 @@ BaseElements = {
       @props = {
         name: "link0",
         sys: "",
+        design: dsg,
         capacity: 1000,
         latency: null,
         endpoints: [
@@ -222,12 +223,6 @@ BaseElements = {
       @props.latency = 7
 
     setEndpointData: ->
-      ###
-      @props.a_name = @endpoint[0].props.name
-      @props.a_sys = @endpoint[0].props.sys
-      @props.b_name = @endpoint[1].props.name
-      @props.b_sys = @endpoint[1].props.sys
-      ###
       @props.endpoints[0].name = @endpoint[0].props.name
       @props.endpoints[0].sys = @endpoint[0].props.sys
       #@props.endpoints[0].ifname = @endpoint[0].?
