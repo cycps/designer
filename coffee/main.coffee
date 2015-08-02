@@ -110,7 +110,13 @@ Shapes = {
       )
 
       @geom.computeBoundingSphere()
-      @material = new THREE.MeshBasicMaterial({color: 0x123456})
+      @material = new THREE.MeshBasicMaterial(
+        {
+          color: 0x7800ff,
+          opacity: 0.2,
+          transparent: true
+        }
+      )
       @obj3d = new THREE.Mesh(@geom, @material)
 
     updateGFX: () ->
@@ -359,6 +365,29 @@ class Surface
     @elements.push(e)
     @ve.render()
     e
+
+  addIfContains: (box, e, set) ->
+    e.shp.obj3d.geometry.computeBoundingBox()
+    bb = e.shp.obj3d.geometry.boundingBox
+    bx = new THREE.Box2(
+      e.shp.obj3d.localToWorld(bb.min),
+      e.shp.obj3d.localToWorld(bb.max)
+    )
+    set.push(e) if box.containsBox(bx)
+    true
+
+  toBox2: (box) ->
+    new THREE.Box2(
+      new THREE.Vector2(box.min.x, box.min.y),
+      new THREE.Vector2(box.max.x, box.max.y)
+    )
+
+  getSelection: (box) ->
+    xs = []
+    box2 = @toBox2(box)
+    @addIfContains(box2, x, xs) for x in @elements
+    xs
+
   
   updateLink: (ln) ->
     ln.geom.verticesNeedUpdate = true
@@ -738,6 +767,8 @@ class SurfaceElementSelectHandler
       @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       @mh.ve.render()
 
+    
+
 class SurfaceSpaceSelectHandler
   constructor: (@mh) ->
     @selCube = new SelectionCube()
@@ -761,6 +792,8 @@ class SurfaceSpaceSelectHandler
 
   handleUp: (event) ->
     console.log "! surface select up"
+    sel = @mh.ve.surface.getSelection(@selCube.obj3d.geometry.boundingBox)
+    console.log(sel)
     @selCube.reset()
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
