@@ -254,7 +254,7 @@ BaseElements = {
         sys: "",
         design: dsg,
         capacity: 1000,
-        latency: null,
+        latency: 0,
         endpoints: [
           {name: "", sys: "", design: dsg, ifname: ""},
           {name: "", sys: "", design: dsg, ifname: ""}
@@ -367,13 +367,22 @@ class Surface
     e
 
   addIfContains: (box, e, set) ->
-    e.shp.obj3d.geometry.computeBoundingBox()
-    bb = e.shp.obj3d.geometry.boundingBox
-    bx = new THREE.Box2(
-      e.shp.obj3d.localToWorld(bb.min),
-      e.shp.obj3d.localToWorld(bb.max)
-    )
-    set.push(e) if box.containsBox(bx)
+    o3d = null
+    if e.shp?
+      o3d = e.shp.obj3d
+    else if e.ln?
+      o3d = e.ln.obj3d
+    if o3d != null
+      o3d.geometry.computeBoundingBox()
+      bb = o3d.geometry.boundingBox
+      bx = new THREE.Box2(
+        o3d.localToWorld(bb.min),
+        o3d.localToWorld(bb.max)
+      )
+      set.push(e) if box.containsBox(bx)
+
+      #for some reason computing the bounding box kills selection
+      o3d.geometry.boundingBox = null
     true
 
   toBox2: (box) ->
@@ -493,12 +502,12 @@ class Surface
 
   selectObj: (obj) ->
     
-    @clearSelection()
-    @showPropsGUI([obj])
+    #@clearSelection()
+    #@showPropsGUI([obj])
 
     if not obj.glowBubble?
-      console.log "! select"
-      console.log obj
+      #console.log "! select"
+      #console.log obj
       if obj.shp instanceof Shapes.Circle
         p = obj.shp.obj3d.position
         s = obj.shp.geom.boundingSphere.radius + 3
@@ -647,6 +656,7 @@ class VisualEnvironment
     @namemanager = new NameManager()
     @xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
+    @propsEditor = new PropsEditor()
 
   render: ->
     @renderer.clear()
@@ -743,8 +753,12 @@ class SurfaceElementSelectHandler
   handleDown: (ixs) ->
     e = ixs[0].object.userData
     console.log "! surface select -- " + e.constructor.name
-    console.log e
+    #console.log e
+    @mh.ve.surface.clearSelection()
     @mh.ve.surface.selectObj(e)
+    @mh.ve.propsEditor.elements = [e]
+    #@mh.ve.propsEditor.commonProps()
+    @mh.ve.propsEditor.show()
     @mh.placingObject = e
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
     @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
@@ -767,7 +781,76 @@ class SurfaceElementSelectHandler
       @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       @mh.ve.render()
 
-    
+
+class PropsEditor
+  constructor: () ->
+    @elements = []
+    @cprops = {}
+
+  show: () ->
+    @commonProps()
+    @datgui = new dat.GUI()
+    for k, v of @cprops
+      continue if k == 'position'
+      continue if k == 'design'
+      continue if k == 'endpoints'
+      @datgui.add(@cprops, k)
+    true
+
+  hide: () ->
+    if @datgui?
+      @datgui.destroy()
+      @datgui = null
+
+  commonProps: () ->
+
+    addProp = (d, k, v) ->
+      if !d[k]?
+        d[k] = [v]
+      else
+        d[k].push(v)
+
+    ps = {}
+
+    addProps = (e) ->
+      addProp(ps, k, v) for k, v of e.props
+
+    addProps(e) for e in @elements
+
+    cps = new Array()
+
+    addCommon = (k, v, es) ->
+      if v.length == es.length then cps[k] = v
+      true
+
+
+    addCommon(k, v, @elements) for k, v of ps
+
+    isUniform = (xs) ->
+      u = true
+      i = xs[0]
+      for x in xs
+        u = (x == i)
+        break if !u
+      u
+
+    setUniform = (k, v, e) ->
+      if isUniform(v)
+        e[k] = v[0]
+      else
+        e[k] = ""
+      true
+
+    reduceUniform = (xps) ->
+      setUniform(k, v, xps) for k, v of xps
+      true
+
+    reduceUniform(cps)
+
+    @cprops = cps
+    cps
+
+
 
 class SurfaceSpaceSelectHandler
   constructor: (@mh) ->
@@ -778,22 +861,27 @@ class SurfaceSpaceSelectHandler
     ixs[0].object.userData instanceof Surface
 
   handleDown: (ixs) ->
-    console.log "! surface select down"
+    console.log "! space select down"
     p = new THREE.Vector3(
       ixs[ixs.length - 1].point.x,
       ixs[ixs.length - 1].point.y,
       75
     )
     @selCube.init(p)
-    @mh.ve.surface.selectorGroup.add(@selCube.obj3d)
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
+    @mh.ve.surface.selectorGroup.add(@selCube.obj3d)
     @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
     @mh.ve.surface.clearSelection()
 
   handleUp: (event) ->
-    console.log "! surface select up"
+    console.log "! space select up"
     sel = @mh.ve.surface.getSelection(@selCube.obj3d.geometry.boundingBox)
-    console.log(sel)
+    @mh.ve.surface.selectObj(o) for o in sel
+    @mh.ve.propsEditor.elements = sel
+    console.log('common props')
+    #console.log(@mh.ve.propsEditor.commonProps())
+    @mh.ve.propsEditor.show()
+    #console.log(sel)
     @selCube.reset()
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
@@ -925,7 +1013,10 @@ class MouseHandler
   #onmousedown handlers
   baseDown: (event) ->
 
+    @ve.propsEditor.hide()
+
     #get the list of objects the mouse click intersected
+    #@ve.scene.updateMatrixWorld()
     @updateMouse(event)
     @ve.raycaster.setFromCamera(@pos, @ve.camera)
     ixs = @ve.raycaster.intersectObjects(@ve.scene.children, true)
@@ -934,6 +1025,8 @@ class MouseHandler
     if      @eboxSH.test(ixs) then @eboxSH.handleDown(ixs)
     else if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
     else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
+
+    true
 
 
 
