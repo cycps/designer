@@ -794,6 +794,7 @@ class PropsEditor
       continue if k == 'position'
       continue if k == 'design'
       continue if k == 'endpoints'
+      continue if k == 'name' and @elements.length > 1
       @datgui.add(@cprops, k)
     true
 
