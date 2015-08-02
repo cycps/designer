@@ -87,6 +87,60 @@ Shapes = {
     
     select: ->
 
+  SelectionCube: class SelectionCube
+    constructor: () ->
+      @geom = new THREE.Geometry()
+      @geom.dynamic = true
+
+      @aa = new THREE.Vector3(0, 0, 75)
+      @ab = new THREE.Vector3(0, 0, 75)
+      @ba = new THREE.Vector3(0, 0, 75)
+      @bb = new THREE.Vector3(0, 0, 75)
+
+      @geom.vertices.push(
+        @aa, @ab, @ba,
+        @bb, @ba, @ab
+      )
+
+      @geom.faces.push(
+        new THREE.Face3(0, 1, 2),
+        new THREE.Face3(2, 1, 0),
+        new THREE.Face3(3, 4, 5),
+        new THREE.Face3(5, 4, 3)
+      )
+
+      @geom.computeBoundingSphere()
+      @material = new THREE.MeshBasicMaterial({color: 0x123456})
+      @obj3d = new THREE.Mesh(@geom, @material)
+
+    updateGFX: () ->
+      @geom.verticesNeedUpdate = true
+      @geom.lineDistancesNeedUpdate = true
+      @geom.elementsNeedUpdate = true
+      @geom.normalsNeedUpdate = true
+      @geom.computeFaceNormals()
+      @geom.computeVertexNormals()
+      @geom.computeBoundingSphere()
+      @geom.computeBoundingBox()
+
+    init: (p) ->
+      @aa.x = @ab.x = @ba.x = p.x
+      @aa.y = @ba.y = @ab.y = p.y
+      @bb.x = @aa.x
+      @bb.y = @aa.y
+      @updateGFX()
+
+
+    update: (p) ->
+      @bb.x = @ba.x = p.x
+      @bb.y = @ab.y = p.y
+      @updateGFX()
+
+    reset: () ->
+      @aa.x = @bb.x = @ba.x = @ab.x = 0
+      @aa.y = @bb.y = @ba.y = @ab.y = 0
+      @updateGFX()
+
 }
 
 #The BaseElements object holds classes which are Visual representations of the
@@ -294,6 +348,8 @@ class Surface
     @ve.scene.add(@baseRect.obj3d)
     @selectGroup = new THREE.Group()
     @ve.scene.add(@selectGroup)
+    @selectorGroup = new THREE.Group()
+    @ve.scene.add(@selectorGroup)
     @elements = []
 
   addElement: (ef, x, y) ->
@@ -455,6 +511,10 @@ class Surface
     delete gb.userData.glowBubble for gb in @selectGroup.children
     @selectGroup.children = []
     @clearPropsGUI()
+    @ve.render()
+
+  clearSelector: ->
+    @selectorGroup.children = []
     @ve.render()
 
 class NameManager
@@ -680,14 +740,45 @@ class SurfaceElementSelectHandler
 
 class SurfaceSpaceSelectHandler
   constructor: (@mh) ->
+    @selCube = new SelectionCube()
 
   test: (ixs) ->
     ixs.length > 0 and
     ixs[0].object.userData instanceof Surface
 
   handleDown: (ixs) ->
-    console.log "! surface clear " + ixs.length
+    console.log "! surface select down"
+    p = new THREE.Vector3(
+      ixs[ixs.length - 1].point.x,
+      ixs[ixs.length - 1].point.y,
+      75
+    )
+    @selCube.init(p)
+    @mh.ve.surface.selectorGroup.add(@selCube.obj3d)
+    @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
+    @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
     @mh.ve.surface.clearSelection()
+
+  handleUp: (event) ->
+    console.log "! surface select up"
+    @selCube.reset()
+    @mh.ve.container.onmousemove = null
+    @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
+    @mh.ve.container.onmouseup = null
+    @mh.ve.surface.clearSelector()
+    @mh.ve.render()
+
+  handleMove: (event) ->
+    bix = @mh.baseRectIx(event)
+    if bix.length > 0
+      p = new THREE.Vector3(
+        bix[bix.length - 1].point.x,
+        bix[bix.length - 1].point.y,
+        75
+      )
+      @selCube.update(p)
+      @mh.ve.render()
+    
 
 class LinkingHandler
   constructor: (@mh) ->
@@ -750,6 +841,7 @@ class LinkingHandler
     #console.log "! lm0"
     
   handleMove1: (event) ->
+    #TODO replace me with baseRectIx when that is ready
     @.mh.updateMouse(event)
     @.mh.ve.raycaster.setFromCamera(@.mh.pos, @.mh.ve.camera)
     bix = @.mh.ve.raycaster.intersectObject(@.mh.ve.surface.baseRect.obj3d)
@@ -777,6 +869,11 @@ class MouseHandler
     @pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
     @pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
     #console.log(@pos.x + "," + @pos.y)
+
+  baseRectIx: (event) ->
+    @updateMouse(event)
+    @ve.raycaster.setFromCamera(@pos, @ve.camera)
+    @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
 
   placingObject: null
   placingLink: null
