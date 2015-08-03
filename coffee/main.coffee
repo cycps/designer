@@ -486,8 +486,6 @@ class Surface
       x.showProps(f) for x in xs
       f.open()
 
-    #@ve.datgui.addFolder(k) for k,v of dict
-
     addGuiElems(k, v) for k,v of dict
 
     $(@ve.datgui.domElement).focusout () =>
@@ -495,19 +493,9 @@ class Surface
 
     true
 
-    #@ve.datgui.onChange () ->
-    #  @ve.addie.update(x) for x in s
-
-
-
   selectObj: (obj) ->
-    
-    #@clearSelection()
-    #@showPropsGUI([obj])
 
     if not obj.glowBubble?
-      #console.log "! select"
-      #console.log obj
       if obj.shp instanceof Shapes.Circle
         p = obj.shp.obj3d.position
         s = obj.shp.geom.boundingSphere.radius + 3
@@ -527,7 +515,6 @@ class Surface
         h = 10
         v0 = obj.ln.geom.vertices[0]
         v1 = obj.ln.geom.vertices[obj.ln.geom.vertices.length - 1]
-        #w = Math.abs(v0.x - v1.x)
         w = obj.ln.geom.boundingSphere.radius * 2
         x = (v0.x + v1.x) / 2
         y = (v0.y + v1.y) / 2
@@ -753,11 +740,9 @@ class SurfaceElementSelectHandler
   handleDown: (ixs) ->
     e = ixs[0].object.userData
     console.log "! surface select -- " + e.constructor.name
-    #console.log e
     @mh.ve.surface.clearSelection()
     @mh.ve.surface.selectObj(e)
     @mh.ve.propsEditor.elements = [e]
-    #@mh.ve.propsEditor.commonProps()
     @mh.ve.propsEditor.show()
     @mh.placingObject = e
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
@@ -791,12 +776,6 @@ class PropsEditor
     @commonProps()
     @datgui = new dat.GUI()
     for k, v of @cprops
-      ###
-      continue if k == 'position'
-      continue if k == 'design'
-      continue if k == 'endpoints'
-      continue if k == 'name' and @elements.length > 1
-      ###
       @datgui.add(@cprops, k)
 
     $(@datgui.domElement).focusout () =>
@@ -892,9 +871,7 @@ class SurfaceSpaceSelectHandler
     @mh.ve.surface.selectObj(o) for o in sel
     @mh.ve.propsEditor.elements = sel
     console.log('common props')
-    #console.log(@mh.ve.propsEditor.commonProps())
     @mh.ve.propsEditor.show()
-    #console.log(sel)
     @selCube.reset()
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
