@@ -285,10 +285,8 @@ BaseElements = {
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
       @props.endpoints[0].sys = @endpoint[0].props.sys
-      #@props.endpoints[0].ifname = @endpoint[0].?
       @props.endpoints[1].name = @endpoint[1].props.name
       @props.endpoints[1].sys = @endpoint[1].props.sys
-      #@props.endpoints[1].ifname = @endpoint[1].?
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
@@ -361,6 +359,7 @@ class Surface
   addElement: (ef, x, y) ->
     e = new ef.constructor(@baseRect, x, y, 50)
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
+    e.id.name = e.props.name
     e.props.design = dsg
     @elements.push(e)
     @ve.render()
@@ -671,8 +670,6 @@ class Addie
     console.log(msg)
 
     $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
-      console.log("update post response")
-      console.log(data)
       x.id.name = x.props.name
       x.id.sys = x.props.sys
 
@@ -685,6 +682,30 @@ class Addie
       updateLink(l) for l in x.links
 
     true
+
+  updates: (xs) =>
+    console.log("updating objects")
+    console.log(xs)
+
+    msg = { Elements: [] }
+
+    for x in xs
+      if x.shp?
+      x.props.position = x.shp.obj3d.position
+      ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
+      msg.Elements.push(ido)
+
+      if x.links?
+        updateLink(l) for l in x.links
+
+      true
+
+    console.log(msg)
+    
+    $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
+      for x in xs
+        x.id.name = x.props.name
+        x.id.sys = x.props.sys
 
 
 class EBoxSelectHandler
