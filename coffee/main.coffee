@@ -656,7 +656,7 @@ class VisualEnvironment
     @namemanager = new NameManager()
     @xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
-    @propsEditor = new PropsEditor()
+    @propsEditor = new PropsEditor(this)
 
   render: ->
     @renderer.clear()
@@ -783,7 +783,7 @@ class SurfaceElementSelectHandler
 
 
 class PropsEditor
-  constructor: () ->
+  constructor: (@ve) ->
     @elements = []
     @cprops = {}
 
@@ -791,11 +791,21 @@ class PropsEditor
     @commonProps()
     @datgui = new dat.GUI()
     for k, v of @cprops
+      ###
       continue if k == 'position'
       continue if k == 'design'
       continue if k == 'endpoints'
       continue if k == 'name' and @elements.length > 1
+      ###
       @datgui.add(@cprops, k)
+
+    $(@datgui.domElement).focusout () =>
+      for k, v of @cprops
+        for e in @elements
+          e.props[k] = v
+          @ve.addie.update(e)
+      true
+
     true
 
   hide: () ->
@@ -804,6 +814,9 @@ class PropsEditor
       @datgui = null
 
   commonProps: () ->
+    
+    ps = {}
+    cps = new Array()
 
     addProp = (d, k, v) ->
       if !d[k]?
@@ -811,19 +824,19 @@ class PropsEditor
       else
         d[k].push(v)
 
-    ps = {}
-
-    addProps = (e) ->
-      addProp(ps, k, v) for k, v of e.props
+    addProps = (e) =>
+      for k, v of e.props
+        continue if k == 'position'
+        continue if k == 'design'
+        continue if k == 'endpoints'
+        continue if k == 'name' and @elements.length > 1
+        addProp(ps, k, v)
 
     addProps(e) for e in @elements
-
-    cps = new Array()
 
     addCommon = (k, v, es) ->
       if v.length == es.length then cps[k] = v
       true
-
 
     addCommon(k, v, @elements) for k, v of ps
 
@@ -850,7 +863,6 @@ class PropsEditor
 
     @cprops = cps
     cps
-
 
 
 class SurfaceSpaceSelectHandler
