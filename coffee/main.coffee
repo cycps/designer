@@ -161,13 +161,14 @@ BaseElements = {
       @parent.obj3d.add(@shp.obj3d)
       @props = {
         name: "computer0",
-        sys: "",
+        sys: "root",
         os: "Ubuntu1504-54-STD",
         start_script: ""
+        interfaces: {}
       }
       @id = {
         name: "computer0"
-        sys: ""
+        sys: "root"
         design: dsg
       }
 
@@ -193,13 +194,13 @@ BaseElements = {
       #object
       @props = {
         name: "router0",
-        sys: "",
+        sys: "root",
         capacity: 100,
         latency: 0
       }
       @id = {
         name: "router0"
-        sys: ""
+        sys: "root"
         design: dsg
       }
 
@@ -222,13 +223,13 @@ BaseElements = {
       @parent.obj3d.add(@shp.obj3d)
       @props = {
         name: "switch0",
-        sys: "",
+        sys: "root",
         capacity: 1000,
         latency: 0
       }
       @id = {
         name: "switch0"
-        sys: ""
+        sys: "root"
         design: dsg
       }
 
@@ -246,23 +247,24 @@ BaseElements = {
   Link: class Link
     constructor: (@parent, from, to, x, y, z, isIcon = false) ->
       @endpoint = [null, null]
+      @ep_ifx = ["",""]
       #TODO: s/ln/shp/g for consistency
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
       @props = {
         name: "link0",
-        sys: "",
+        sys: "root",
         design: dsg,
         capacity: 1000,
         latency: 0,
         endpoints: [
-          {name: "", sys: "", design: dsg, ifname: ""},
-          {name: "", sys: "", design: dsg, ifname: ""}
+          {name: "", sys: "root", design: dsg, ifname: ""},
+          {name: "", sys: "root", design: dsg, ifname: ""}
         ]
       }
       @id = {
         name: "link0"
-        sys: ""
+        sys: "root"
         design: dsg
       }
 
@@ -285,8 +287,11 @@ BaseElements = {
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
       @props.endpoints[0].sys = @endpoint[0].props.sys
+      @props.endpoints[0].ifname = @ep_ifx[0]
+
       @props.endpoints[1].name = @endpoint[1].props.name
       @props.endpoints[1].sys = @endpoint[1].props.sys
+      @props.endpoints[1].ifname = @ep_ifx[1]
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
@@ -667,8 +672,19 @@ class Addie
     ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
     msg.Elements.push(ido)
 
-    console.log(msg)
 
+    if x.setEndpointData?
+      x.setEndpointData()
+      ep = x.endpoint[0]
+      msg.Elements.push(
+        { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
+      )
+      ep = x.endpoint[1]
+      msg.Elements.push(
+        { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
+      )
+
+    console.log(msg)
     $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
       x.id.name = x.props.name
       x.id.sys = x.props.sys
@@ -691,9 +707,9 @@ class Addie
 
     for x in xs
       if x.shp?
-      x.props.position = x.shp.obj3d.position
-      ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
-      msg.Elements.push(ido)
+        x.props.position = x.shp.obj3d.position
+        ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
+        msg.Elements.push(ido)
 
       if x.links?
         updateLink(l) for l in x.links
@@ -829,6 +845,7 @@ class PropsEditor
         continue if k == 'position'
         continue if k == 'design'
         continue if k == 'endpoints'
+        continue if k == 'interfaces'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
@@ -935,7 +952,17 @@ class LinkingHandler
       )
       @mh.ve.surface.elements.push(@mh.placingLink)
       @mh.placingLink.props.name = @mh.ve.namemanager.getName("lnk")
+      
+      ifname = ""
+      if ixs[0].object.userData.props.interfaces?
+        ifname = "ifx"+Object.keys(ixs[0].object.userData.props.interfaces).length
+        ixs[0].object.userData.props.interfaces[ifname] = {
+          name: ifname,
+          latency: 0,
+          capacity: 1000
+        }
       @mh.placingLink.endpoint[0] = ixs[0].object.userData
+      @mh.placingLink.ep_ifx[0] = ifname
       @mh.placingLink.endpoint[0].links.push(@mh.placingLink)
       ixs[0].object.lines.push(@mh.placingLink.ln)
       @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
@@ -953,7 +980,16 @@ class LinkingHandler
       @mh.placingLink.ln.geom.vertices[1] = ixs[0].object.linep
       ixs[0].object.lines.push(@mh.placingLink.ln)
       
+      ifname = ""
+      if ixs[0].object.userData.props.interfaces?
+        ifname = "ifx"+Object.keys(ixs[0].object.userData.props.interfaces).length
+        ixs[0].object.userData.props.interfaces[ifname] = {
+          name: ifname,
+          latency: 0,
+          capacity: 1000
+        }
       @mh.placingLink.endpoint[1] = ixs[0].object.userData
+      @mh.placingLink.ep_ifx[1] = ifname
       @mh.placingLink.endpoint[1].links.push(@mh.placingLink)
 
       @mh.ve.surface.updateLink(@mh.placingLink.ln)
