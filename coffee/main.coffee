@@ -163,7 +163,7 @@ BaseElements = {
         name: "computer0",
         sys: "root",
         os: "Ubuntu1504-54-STD",
-        start_script: ""
+        start_script: "",
         interfaces: {}
       }
       @id = {
@@ -196,7 +196,8 @@ BaseElements = {
         name: "router0",
         sys: "root",
         capacity: 100,
-        latency: 0
+        latency: 0,
+        interfaces: {}
       }
       @id = {
         name: "router0"
@@ -225,7 +226,8 @@ BaseElements = {
         name: "switch0",
         sys: "root",
         capacity: 1000,
-        latency: 0
+        latency: 0,
+        interfaces: {}
       }
       @id = {
         name: "switch0"
