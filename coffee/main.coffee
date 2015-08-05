@@ -252,18 +252,18 @@ BaseElements = {
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
       @props = {
-        name: "link0",
+        name: "lnk0",
         sys: "root",
         design: dsg,
         capacity: 1000,
         latency: 0,
         endpoints: [
-          {name: "", sys: "root", design: dsg, ifname: ""},
-          {name: "", sys: "root", design: dsg, ifname: ""}
+          {name: "link0", sys: "root", design: dsg, ifname: ""},
+          {name: "link0", sys: "root", design: dsg, ifname: ""}
         ]
       }
       @id = {
-        name: "link0"
+        name: "lnk0"
         sys: "root"
         design: dsg
       }
