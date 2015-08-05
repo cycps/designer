@@ -171,6 +171,7 @@ BaseElements = {
         sys: "root"
         design: dsg
       }
+      @links = []
 
     showProps: (f) ->
       c = f.add(@props, 'name')
@@ -178,7 +179,6 @@ BaseElements = {
       c = f.add(@props, 'start_script')
       c = f.add(@props, 'os')
 
-    links: []
 
 
     #cyjs generates the json for this object
@@ -204,6 +204,7 @@ BaseElements = {
         sys: "root"
         design: dsg
       }
+      @links = []
 
     showProps: (f) ->
       f.add(@props, 'name')
@@ -211,7 +212,6 @@ BaseElements = {
       f.add(@props, 'capacity')
       f.add(@props, 'latency')
     
-    links: []
     
     #cyjs generates the json for this object
     cyjs: ->
@@ -234,6 +234,7 @@ BaseElements = {
         sys: "root"
         design: dsg
       }
+      @links = []
 
     showProps: (f) ->
       f.add(@props, 'name')
@@ -241,7 +242,6 @@ BaseElements = {
       f.add(@props, 'capacity')
       f.add(@props, 'latency')
     
-    links: []
     
     #cyjs generates the json for this object
     cyjs: ->
