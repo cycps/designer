@@ -815,6 +815,10 @@ class SurfaceElementSelectHandler
       @mh.ve.render()
 
 
+#TODO, me thinks that angular.js is meant to deal with precisely the problem
+#we are tyring to solve with the props editor, in the future we should look
+#into replacing dat.gui (as nifty as it is) with an angular based control
+#that is a bit more intelligent
 class PropsEditor
   constructor: (@ve) ->
     @elements = []
