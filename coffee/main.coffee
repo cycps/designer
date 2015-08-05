@@ -707,6 +707,8 @@ class Addie
 
     msg = { Elements: [] }
 
+    lnk_updates = {}
+
     for x in xs
       if x.shp?
         x.props.position = x.shp.obj3d.position
@@ -714,9 +716,16 @@ class Addie
         msg.Elements.push(ido)
 
       if x.links?
-        updateLink(l) for l in x.links
+        for l in x.links
+          l.setEndpointData()
+          ido = { OID: l.id, Type: l.constructor.name, Element: l.props }
+          #msg.Elements.push(ido)
+          lnk_updates[JSON.stringify(l.id)] = ido
+
 
       true
+
+    msg.Elements.push(lu) for _, lu of lnk_updates
 
     console.log(msg)
     
@@ -821,7 +830,7 @@ class PropsEditor
       for k, v of @cprops
         for e in @elements
           e.props[k] = v
-          @ve.addie.update(e)
+      @ve.addie.updates(@elements)
       true
 
     true
@@ -829,6 +838,8 @@ class PropsEditor
   hide: () ->
     if @datgui?
       @datgui.destroy()
+      @elements = []
+      @cprops = {}
       @datgui = null
 
   commonProps: () ->
