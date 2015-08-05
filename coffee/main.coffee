@@ -952,6 +952,7 @@ class LinkingHandler
       )
       @mh.ve.surface.elements.push(@mh.placingLink)
       @mh.placingLink.props.name = @mh.ve.namemanager.getName("lnk")
+      @mh.placingLink.id.name = @mh.placingLink.props.name
       
       ifname = ""
       if ixs[0].object.userData.props.interfaces?
