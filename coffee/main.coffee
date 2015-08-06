@@ -1,12 +1,36 @@
 root = exports ? this
 
-#Entry point
-root.go = ->
+getParameterByName = (name) =>
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]")
+    regex = new RegExp("[\\?&]" + name + "=([^&#]*)")
+    results = regex.exec(location.search)
+    decodeURIComponent(results[1].replace(/\+/g, " "))
+
+initViz = () =>
   g.ve = new VisualEnvironment(document.getElementById("surface"))
   g.ve.ebox = new ElementBox(g.ve)
   g.ve.surface = new Surface(g.ve)
   g.ve.datgui = null
   g.ve.render(g.ve)
+
+dsg = ""
+
+#Entry point
+root.go = ->
+  ($.get "/gatekeeper/thisUser", (data) =>
+    g.user = data
+    console.log("the user is " + g.user)
+    g.xp = getParameterByName("xp")
+    dsg = g.xp
+    console.log("the xp is " + g.xp)
+    loadXP()
+    initViz()
+  ).fail () ->
+    console.log("fail to get current user, going back to login screen")
+    window.location.href = location.origin
+    true
+
+loadXP = () =>
 
 #Global event handlers
 root.vz_mousedown = (event) ->
@@ -20,8 +44,6 @@ root.save = () =>
 
 #Global state holder
 g = {}
-
-dsg = "design47"
 
 #Shapes contains a collection of classes that comprise the basic shapes used to
 #represent Cypress CPS elements

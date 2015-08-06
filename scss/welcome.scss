@@ -1,8 +1,12 @@
+html {
+  height: 100%;
+}
 
 body {
   background-color: #22362C;
   width: 100%;
   margin: 0;
+  height: 100%;
 }
 
 ul {
@@ -73,6 +77,35 @@ h1 {
   background-color: #cacaca;
   color: #22362C;
   font-family: "trajan-sans-pro";
-  font-size: 24px;
+  font-size: 16px;
   padding: 10px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
+  word-break: break-all;
+}
+
+.exp_new_editing {
+    font-size: 16px;
+    cursor: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+#messages {
+  color: white;
+  text-align: center;
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+}
+
+.suplimental_info {
+  font-size: 0.9em;
+  color: #ababab;
 }
