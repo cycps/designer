@@ -1,0 +1,56 @@
+
+body {
+  background-color: #22362C;
+  width: 100%;
+  margin: 0;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+input {
+  font-size: 110%;
+  margin: 5px;
+  padding: 3px;
+  background-color: #cacaca;
+  text-align: center;
+  border-radius: 3px;
+  border-style: none;
+}
+
+h1 {
+  color: #cacaca;
+  font-family: "trajan-sans-pro";
+  font-weight: 200;
+  font-size: 47px;
+  text-align: center;
+}
+
+#logo_div {
+  background-color: #cacaca;
+  text-align: center;
+  margin: 0;
+}
+
+#logo {
+
+}
+
+#login_btn {
+  color: #272727;
+}
+
+#login_div {
+  text-align: center;
+  margin: 100px auto;
+  width: 300px;
+}
+
+#login_form input {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 5px;
+}
+
