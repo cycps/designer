@@ -23,8 +23,8 @@ root.go = ->
     g.xp = getParameterByName("xp")
     dsg = g.xp
     console.log("the xp is " + g.xp)
-    loadXP()
     initViz()
+    loadXP()
   ).fail () ->
     console.log("fail to get current user, going back to login screen")
     window.location.href = location.origin
@@ -33,8 +33,92 @@ root.go = ->
 loadXP = () =>
   ($.get "/addie/"+dsg+"/design/read", (data) =>
     console.log("design read success")
+    console.log(data)
+    doLoad(data)
   ).fail (data) =>
     console.log("design read fail" + data.status)
+
+doLoad = (m) =>
+
+  #gotta do the links after nodes b/c links reference nodes
+  links = []
+  for x in m.elements
+    switch x.type
+      when "Computer"
+        loadComputer(x.object)
+      when "Router"
+        loadRouter(x.object)
+      when "Switch"
+        loadSwitch(x.object)
+      when "Link"
+        links.push(x.object)
+
+  for x in links
+    loadLink(x)
+
+  g.ve.render()
+
+  true
+
+setProps = (x, p) =>
+  x.props = p
+  x.id.name = p.name
+  x.id.sys = p.sys
+  x.id.design = p.design
+
+loadComputer = (x) =>
+  c = new BaseElements.Computer(g.ve.surface.baseRect,
+                                x.position.x, x.position.y, x.position.z)
+  setProps(c, x)
+  g.ve.surface.elements.push(c)
+  true
+
+loadRouter = (x) =>
+  r = new BaseElements.Router(g.ve.surface.baseRect,
+                              x.position.x, x.position.y, x.position.z)
+
+  setProps(r, x)
+  g.ve.surface.elements.push(r)
+  true
+
+loadSwitch = (x) =>
+  s = new BaseElements.Switch(g.ve.surface.baseRect,
+                              x.position.x, x.position.y, x.position.z)
+
+  setProps(s, x)
+  g.ve.surface.elements.push(s)
+  true
+
+loadLink = (x) =>
+  a = g.ve.surface.getElement(
+    x.endpoints[0].name,
+    x.endpoints[0].sys
+  )
+  if a == null
+    console.log("bad endpoint detected")
+
+  b = g.ve.surface.getElement(
+    x.endpoints[1].name,
+    x.endpoints[1].sys
+  )
+  if b == null
+    console.log("bad endpoint detected")
+
+  l = new BaseElements.Link(g.ve.surface.baseRect,
+        a.shp.obj3d.linep, b.shp.obj3d.linep, 0, 0, 5)
+
+  a.links.push(l)
+  a.shp.obj3d.lines.push(l.ln)
+  b.links.push(l)
+  b.shp.obj3d.lines.push(l.ln)
+
+  l.endpoint[0] = a
+  l.endpoint[1] = b
+
+  setProps(l, x)
+  g.ve.surface.elements.push(l)
+  true
+                        
 
 #Global event handlers
 root.vz_mousedown = (event) ->
@@ -397,6 +481,15 @@ class Surface
     @elements.push(e)
     @ve.render()
     e
+
+  getElement: (name, sys) ->
+    e = null
+    for x in @elements
+      if x.props.name == name  && x.props.sys == sys
+        e = x
+        break
+    e
+
 
   addIfContains: (box, e, set) ->
     o3d = null
