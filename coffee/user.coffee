@@ -6,10 +6,36 @@ thisUser = () =>
   ($.get "/gatekeeper/thisUser", (data) =>
     user = data
     $("#user_ctrl").html(user)
+    loadUserDesigns()
   ).fail () ->
     console.log("fail to get current user, going back to login screen")
     window.location.href = location.origin
     true
+
+onFail = (data) =>
+  if data.status >= 400
+    $("#messages").html(
+      "There was a server error<br />"+
+      "<span class='suplimental_info'>cypress@deterlab.net has been notified<span>")
+    reportServerError(data.status)
+  else
+    $("#messages").html(
+      "Failed to create experiment<br />"+
+      "<span class='suplimental_info'>cypress@deterlab.net has been notified<span>")
+    reportServerError(data.status)
+
+doLoadDesigns = (ps) =>
+  for p in ps
+    $("#experiments").append(
+      "<div class='xp' id"+p+" onclick=goDesign('"+p+"')>"+p+"</div>"
+    )
+
+loadUserDesigns = () =>
+  ($.get "/gatekeeper/myDesigns", (data) =>
+    console.log(data)
+    doLoadDesigns(data.designs)
+  ).fail (data) =>
+    onFail(data)
 
 newXP = () =>
   console.log("newXP")
@@ -44,40 +70,12 @@ root.newExpKeyPrH = (evt) =>
       validName = validateName(expname)
 
       if validName
-        #node.attr("contenteditable", "false")
-            #.removeClass("exp_new_editing")
-            #.removeAttr("onkeypress", "")
-            #.removeClass("exp_preview_new")
-            #.attr("onclick", "goDesign('"+expname+"')")
-
         ($.post "/gatekeeper/newXP", JSON.stringify({name: expname}), (data) =>
           console.log("newXP success")
           goDesign(expname)
-        ).fail (jqxhr) ->
-          if jqxhr.status >= 400
-            $("#messages").html(
-              "There was a server error<br />"+
-              "<span class='suplimental_info'>cypress@deterlab.net has been notified<span>")
-            reportServerError(jqxhr.status)
-          else
-            $("#messages").html(
-              "Failed to create experiment<br />"+
-              "<span class='suplimental_info'>cypress@deterlab.net has been notified<span>")
-            reportServerError(jqxhr.status)
+        ).fail (data) =>
+          onFail(data)
 
-      ###
-      $("#experiments").find("#display")
-          .prepend(
-              "<div class='exp_preview exp_preview_new' onclick='newExp()'>"+
-                "New" +
-              "</div>")
-
-      $.post("newExp", {name: expname},
-          (data) =>
-              console.log("newExp response")
-              console.log(data)
-      )
-      ###
 
 $(document).ready () =>
   thisUser()
