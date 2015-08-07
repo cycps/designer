@@ -982,6 +982,7 @@ class PropsEditor
         continue if k == 'design'
         continue if k == 'endpoints'
         continue if k == 'interfaces'
+        continue if k == 'path'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
