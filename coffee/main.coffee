@@ -31,6 +31,10 @@ root.go = ->
     true
 
 loadXP = () =>
+  ($.get "/addie/"+dsg+"/design/read", (data) =>
+    console.log("design read success")
+  ).fail (data) =>
+    console.log("design read fail" + data.status)
 
 #Global event handlers
 root.vz_mousedown = (event) ->
