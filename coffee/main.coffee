@@ -704,8 +704,9 @@ class Addie
     for x in xs
       if x.shp?
         x.props.position = x.shp.obj3d.position
-        ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
-        msg.Elements.push(ido)
+
+      ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
+      msg.Elements.push(ido)
 
       if x.links?
         for l in x.links
@@ -714,10 +715,19 @@ class Addie
           #msg.Elements.push(ido)
           lnk_updates[JSON.stringify(l.id)] = ido
 
+      if x.setEndpointData?
+        x.setEndpointData()
+        ep = x.endpoint[0]
+        msg.Elements.push(
+          { OID: ep.id, Type: ep.constructor.name, Element: ep.props })
+
+        ep = x.endpoint[1]
+        msg.Elements.push(
+          { OID: ep.id, Type: ep.constructor.name, Element: ep.props })
+
 
       true
 
-    msg.Elements.push(lu) for _, lu of lnk_updates
 
     console.log(msg)
     
@@ -725,11 +735,20 @@ class Addie
       for x in xs
         x.id.name = x.props.name
         x.id.sys = x.props.sys
+        msg = { Elements: [] }
+        msg.Elements.push(lu) for _, lu of lnk_updates
+        $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
 
   load: () =>
-    ($.get "/addie/"+dsg+"/design/read", (data) =>
+    ($.get "/addie/"+dsg+"/design/read", (data, status, jqXHR) =>
       console.log("design read success")
+      console.log(data) #jquery is broken
+      #console.log(jqXHR)
+      #_data = JSON.parse(jqXHR.responseText)
+      #console.log(_data)
+      #console.log(jqXHR.responseJSON)
       @doLoad(data)
+      true
     ).fail (data) =>
       console.log("design read fail" + data.status)
 
@@ -807,8 +826,11 @@ class Addie
 
     l.endpoint[0] = a
     l.endpoint[1] = b
+    l.ep_ifx[0] = x.endpoints[0].ifname
+    l.ep_ifx[1] = x.endpoints[1].ifname
 
     @setProps(l, x)
+    l.setEndpointData()
     @ve.surface.elements.push(l)
     true
 
