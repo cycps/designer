@@ -213,6 +213,28 @@ BaseElements = {
     #cyjs generates the json for this object
     cyjs: ->
 
+  #The Model class is a represenation of a mathematical model of a physical object
+  Model: class Model
+    constructor: (@parent, x, y, z) ->
+      @shp = new Shapes.Rectangle(0x00ca47, x, y, z, 25, 25)
+      @shp.obj3d.userData = this
+      @parent.obj3d.add(@shp.obj3d)
+      @props = {
+        name: "model0",
+        sys: "root",
+        params: "",
+        eqtns: ""
+      }
+      @id = {
+        name: "model0",
+        sys: "root",
+        design: dsg
+      }
+
+    #cyjs generates the json for this object
+    cyjs: ->
+
+
   #Router is a visual representation of an IP-network router 
   Router: class Router
     constructor: (@parent, x, y, z) ->
@@ -377,6 +399,7 @@ class ElementBox
         x, y, 5, true
       )
     )
+    @addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 #aka the majority of the screen
@@ -689,6 +712,7 @@ class VisualEnvironment
     @xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
     @propsEditor = new PropsEditor(this)
+    @equationEditor = new EquationEditor(this)
 
   render: ->
     @renderer.clear()
@@ -921,6 +945,10 @@ class SurfaceElementSelectHandler
     @mh.ve.surface.selectObj(e)
     @mh.ve.propsEditor.elements = [e]
     @mh.ve.propsEditor.show()
+
+    if e instanceof BaseElements.Model
+      @mh.ve.equationEditor.show(e)
+
     @mh.placingObject = e
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
     @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
@@ -949,10 +977,10 @@ class SurfaceElementSelectHandler
       @mh.ve.render()
 
 
-#TODO, me thinks that angular.js is meant to deal with precisely the problem
-#we are tyring to solve with the props editor, in the future we should look
-#into replacing dat.gui (as nifty as it is) with an angular based control
-#that is a bit more intelligent
+#TODO, me thinks that react.js orangular.js is meant to deal with precisely 
+#the problem we are tyring to solve with the props editor, in the future we 
+#should look into replacing dat.gui (as nifty as it is) with an angular 
+#based control that is a bit more intelligent
 class PropsEditor
   constructor: (@ve) ->
     @elements = []
@@ -997,6 +1025,7 @@ class PropsEditor
         continue if k == 'endpoints'
         continue if k == 'interfaces'
         continue if k == 'path'
+        continue if k == 'eqtns'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
@@ -1031,6 +1060,24 @@ class PropsEditor
 
     @cprops = cps
     cps
+
+
+class EquationEditor
+  constructor: (@ve) ->
+    @model = null
+
+  show: (m) ->
+    @model = m
+    console.log("showing equation editor")
+    $("#eqtnSrc").val(@model.props.eqtns)
+    $("#eqtnEditor").css("display", "inline")
+  
+  hide: () ->
+    console.log("hiding equation editor")
+    if @model?
+      @model.props.eqtns = $("#eqtnSrc").val()
+    $("#eqtnEditor").css("display", "none")
+
 
 
 class SurfaceSpaceSelectHandler
@@ -1213,6 +1260,7 @@ class MouseHandler
   baseDown: (event) ->
 
     @ve.propsEditor.hide()
+    @ve.equationEditor.hide()
 
     #get the list of objects the mouse click intersected
     #@ve.scene.updateMatrixWorld()
