@@ -174,6 +174,13 @@ Shapes = {
 #The BaseElements object holds classes which are Visual representations of the
 #objects that comprise a Cypress networked CPS system
 BaseElements = {
+
+  updateId: (e) ->
+    e.id.name = e.props.name
+    e.id.sys = e.props.sys
+
+  currentId: (d) ->
+    {name: d.props.name, sys: d.props.sys, design: dsg }
  
   #The Computer class is a representation of a computer
   Computer: class Computer
@@ -697,37 +704,101 @@ class Addie
     console.log("updating objects")
     console.log(xs)
 
-    msg = { Elements: [] }
-
-    lnk_updates = {}
+    #build the update sets
+    link_updates = {}
+    node_updates = {}
 
     for x in xs
-      if x.shp?
-        x.props.position = x.shp.obj3d.position
 
-      ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
-      msg.Elements.push(ido)
-
-      if x.links?
+      if x.links? #x is a node if it has links
+        node_updates[JSON.stringify(x.id)] = x
         for l in x.links
-          l.setEndpointData()
-          ido = { OID: l.id, Type: l.constructor.name, Element: l.props }
-          #msg.Elements.push(ido)
-          lnk_updates[JSON.stringify(l.id)] = ido
+          link_updates[JSON.stringify(l.id)] = l
 
-      if x.setEndpointData?
-        x.setEndpointData()
-        ep = x.endpoint[0]
-        msg.Elements.push(
-          { OID: ep.id, Type: ep.constructor.name, Element: ep.props })
-
-        ep = x.endpoint[1]
-        msg.Elements.push(
-          { OID: ep.id, Type: ep.constructor.name, Element: ep.props })
-
+      if x instanceof BaseElements.Link
+        link_updates[JSON.stringify(x.id)] = x
+        node_updates[JSON.stringify(x.endpoint[0].id)] = x.endpoint[0]
+        node_updates[JSON.stringify(x.endpoint[1].id)] = x.endpoint[1]
 
       true
 
+    #build the update messages
+    node_msg = { Elements: [] }
+    link_msg = { Elements: [] }
+
+    for _, n of node_updates
+      node_msg.Elements.push(
+        { OID: n.id, Type: n.constructor.name, Element: n.props }
+      )
+      true
+
+    for _, l of link_updates
+      link_msg.Elements.push(
+        { OID: l.id, Type: l.constructor.name, Element: l.props }
+      )
+      true
+
+    doLinkUpdate = () =>
+      console.log("link update")
+      console.log(link_msg)
+        
+      if link_msg.Elements.length > 0
+        $.post "/addie/"+dsg+"/design/update", JSON.stringify(link_msg), (data) =>
+          for _, l of link_updates
+            BaseElements.updateId(l)
+
+    doNodeUpdate = () =>
+      console.log("node update")
+      console.log(node_msg)
+
+      if node_msg.Elements.length > 0
+        $.post "/addie/"+dsg+"/design/update", JSON.stringify(node_msg), (data) =>
+          for _, n of node_updates
+            BaseElements.updateId(n)
+          for _, l of link_updates
+            l.setEndpointData()
+
+          doLinkUpdate()
+
+
+    #do the updates
+    if node_msg.Elements.length > 0
+      doNodeUpdate()
+    else if link_msg.Elements.length > 0
+      doLinkUpdate()
+
+
+    ###
+
+    for x in xs
+
+      ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
+
+      #if node need to update links too
+      if x.links?
+        for l in x.links
+          lido = { OID: l.id, Type: l.constructor.name, Element: l.props }
+          lnk_updates[JSON.stringify(l.id)] = lido
+
+        node_updates[JSON.stringify(x.id)] = ido
+        #msg.Elements.push(ido)
+
+      #if link need to update node too
+      if x instanceof BaseElements.Link
+        #x.setEndpointData()
+        ep = x.endpoint[0]
+        nido = { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
+        node_updates[JSON.stringify(ep.id)] = nido
+
+        ep = x.endpoint[1]
+        nido = { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
+        node_updates[JSON.stringify(ep.id)] = nido
+
+        lnk_updates[JSON.stringify(x.id)] = ido
+        ls.push(x)
+
+
+      true
 
     console.log(msg)
     
@@ -735,9 +806,17 @@ class Addie
       for x in xs
         x.id.name = x.props.name
         x.id.sys = x.props.sys
+        for y in ls
+          y.setEndpointData()
         msg = { Elements: [] }
-        msg.Elements.push(lu) for _, lu of lnk_updates
+        for _, lu of lnk_updates
+          msg.Elements.push(lu)
         $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
+          for x in ls
+            x.id.name = x.props.name
+            x.id.sys = x.props.sys
+
+  ###
 
   load: () =>
     ($.get "/addie/"+dsg+"/design/read", (data, status, jqXHR) =>
@@ -860,6 +939,7 @@ class EBoxSelectHandler
       @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
 
   handleUp: (event) ->
+    @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
     @mh.ve.addie.update([@mh.placingObject])
 
     @mh.ve.container.onmousemove = null
@@ -879,6 +959,8 @@ class EBoxSelectHandler
 
 class SurfaceElementSelectHandler
   constructor: (@mh) ->
+    @start = new THREE.Vector3(0,0,0)
+    @end= new THREE.Vector3(0,0,0)
 
   test: (ixs) ->
     ixs.length > 1 and
@@ -886,6 +968,8 @@ class SurfaceElementSelectHandler
     ixs[0].object.userData.cyjs?
 
   handleDown: (ixs) ->
+    @mh.updateMouse(event)
+    @start.copy(@mh.pos)
     e = ixs[0].object.userData
     console.log "! surface select -- " + e.constructor.name
     @mh.ve.surface.clearSelection()
@@ -897,7 +981,12 @@ class SurfaceElementSelectHandler
     @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
   
   handleUp: (ixs) ->
-    @mh.ve.addie.update([@mh.placingObject])
+    @mh.updateMouse(event)
+    @end.copy(@mh.pos)
+    if @mh.placingObject.shp?
+      @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
+      if @start.distanceTo(@end) > 0
+        @mh.ve.addie.update([@mh.placingObject])
 
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
@@ -930,17 +1019,26 @@ class PropsEditor
     for k, v of @cprops
       @datgui.add(@cprops, k)
 
+    ###
     $(@datgui.domElement).focusout () =>
       for k, v of @cprops
         for e in @elements
           e.props[k] = v
       @ve.addie.update(@elements)
       true
+    ###
 
     true
 
+  save: () ->
+      for k, v of @cprops
+        for e in @elements
+          e.props[k] = v
+      @ve.addie.update(@elements)
+
   hide: () ->
     if @datgui?
+      @save()
       @datgui.destroy()
       @elements = []
       @cprops = {}
