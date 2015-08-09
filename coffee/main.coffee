@@ -528,7 +528,7 @@ class Surface
     addGuiElems(k, v) for k,v of dict
 
     $(@ve.datgui.domElement).focusout () =>
-      @ve.addie.update(x) for x in s
+      @ve.addie.update([x]) for x in s
 
     true
 
@@ -693,47 +693,7 @@ class VisualEnvironment
 class Addie
   constructor: (@ve) ->
 
-  #TODO: kill this and just use updates
-  update: (x) =>
-    console.log("updating object")
-    console.log(x)
-    
-    msg = { Elements: [] }
-    
-    if x.shp?
-      x.props.position = x.shp.obj3d.position
-
-    ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
-    msg.Elements.push(ido)
-
-
-    if x.setEndpointData?
-      x.setEndpointData()
-      ep = x.endpoint[0]
-      msg.Elements.push(
-        { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
-      )
-      ep = x.endpoint[1]
-      msg.Elements.push(
-        { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
-      )
-
-    console.log(msg)
-    $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
-      x.id.name = x.props.name
-      x.id.sys = x.props.sys
-
-    updateLink = (l) =>
-      l.setEndpointData()
-      @update(l)
-
-
-    if x.links?
-      updateLink(l) for l in x.links
-
-    true
-
-  updates: (xs) =>
+  update: (xs) =>
     console.log("updating objects")
     console.log(xs)
 
@@ -878,7 +838,7 @@ class EBoxSelectHandler
       @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
 
   handleUp: (event) ->
-    @mh.ve.addie.update(@mh.placingObject)
+    @mh.ve.addie.update([@mh.placingObject])
 
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
@@ -915,7 +875,7 @@ class SurfaceElementSelectHandler
     @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
   
   handleUp: (ixs) ->
-    @mh.ve.addie.update(@mh.placingObject)
+    @mh.ve.addie.update([@mh.placingObject])
 
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
@@ -952,7 +912,7 @@ class PropsEditor
       for k, v of @cprops
         for e in @elements
           e.props[k] = v
-      @ve.addie.updates(@elements)
+      @ve.addie.update(@elements)
       true
 
     true
@@ -1133,7 +1093,7 @@ class LinkingHandler
       @mh.placingLink.ifInternetToWanLink()
       @mh.placingLink.setEndpointData()
 
-      @mh.ve.addie.update(@mh.placingLink)
+      @mh.ve.addie.update([@mh.placingLink])
 
 
       @mh.ve.container.onmousemove = null
