@@ -767,65 +767,10 @@ class Addie
     else if link_msg.Elements.length > 0
       doLinkUpdate()
 
-
-    ###
-
-    for x in xs
-
-      ido = { OID: x.id, Type: x.constructor.name, Element: x.props }
-
-      #if node need to update links too
-      if x.links?
-        for l in x.links
-          lido = { OID: l.id, Type: l.constructor.name, Element: l.props }
-          lnk_updates[JSON.stringify(l.id)] = lido
-
-        node_updates[JSON.stringify(x.id)] = ido
-        #msg.Elements.push(ido)
-
-      #if link need to update node too
-      if x instanceof BaseElements.Link
-        #x.setEndpointData()
-        ep = x.endpoint[0]
-        nido = { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
-        node_updates[JSON.stringify(ep.id)] = nido
-
-        ep = x.endpoint[1]
-        nido = { OID: ep.id, Type: ep.constructor.name, Element: ep.props }
-        node_updates[JSON.stringify(ep.id)] = nido
-
-        lnk_updates[JSON.stringify(x.id)] = ido
-        ls.push(x)
-
-
-      true
-
-    console.log(msg)
-    
-    $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
-      for x in xs
-        x.id.name = x.props.name
-        x.id.sys = x.props.sys
-        for y in ls
-          y.setEndpointData()
-        msg = { Elements: [] }
-        for _, lu of lnk_updates
-          msg.Elements.push(lu)
-        $.post "/addie/"+dsg+"/design/update", JSON.stringify(msg), (data) =>
-          for x in ls
-            x.id.name = x.props.name
-            x.id.sys = x.props.sys
-
-  ###
-
   load: () =>
     ($.get "/addie/"+dsg+"/design/read", (data, status, jqXHR) =>
       console.log("design read success")
-      console.log(data) #jquery is broken
-      #console.log(jqXHR)
-      #_data = JSON.parse(jqXHR.responseText)
-      #console.log(_data)
-      #console.log(jqXHR.responseJSON)
+      console.log(data)
       @doLoad(data)
       true
     ).fail (data) =>
@@ -1018,16 +963,6 @@ class PropsEditor
     @datgui = new dat.GUI()
     for k, v of @cprops
       @datgui.add(@cprops, k)
-
-    ###
-    $(@datgui.domElement).focusout () =>
-      for k, v of @cprops
-        for e in @elements
-          e.props[k] = v
-      @ve.addie.update(@elements)
-      true
-    ###
-
     true
 
   save: () ->
