@@ -33,7 +33,8 @@ doLoadDesigns = (ps) =>
 loadUserDesigns = () =>
   ($.get "/gatekeeper/myDesigns", (data) =>
     console.log(data)
-    doLoadDesigns(data.designs)
+    if data.designs?
+      doLoadDesigns(data.designs)
   ).fail (data) =>
     onFail(data)
 

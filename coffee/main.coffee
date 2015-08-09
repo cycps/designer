@@ -24,101 +24,13 @@ root.go = ->
     dsg = g.xp
     console.log("the xp is " + g.xp)
     initViz()
-    loadXP()
+    #loadXP()
+    g.ve.addie.load()
+    true
   ).fail () ->
     console.log("fail to get current user, going back to login screen")
     window.location.href = location.origin
     true
-
-loadXP = () =>
-  ($.get "/addie/"+dsg+"/design/read", (data) =>
-    console.log("design read success")
-    console.log(data)
-    doLoad(data)
-  ).fail (data) =>
-    console.log("design read fail" + data.status)
-
-doLoad = (m) =>
-
-  #gotta do the links after nodes b/c links reference nodes
-  links = []
-  for x in m.elements
-    switch x.type
-      when "Computer"
-        loadComputer(x.object)
-      when "Router"
-        loadRouter(x.object)
-      when "Switch"
-        loadSwitch(x.object)
-      when "Link"
-        links.push(x.object)
-
-  for x in links
-    loadLink(x)
-
-  g.ve.render()
-
-  true
-
-setProps = (x, p) =>
-  x.props = p
-  x.id.name = p.name
-  x.id.sys = p.sys
-  x.id.design = p.design
-
-loadComputer = (x) =>
-  c = new BaseElements.Computer(g.ve.surface.baseRect,
-                                x.position.x, x.position.y, x.position.z)
-  setProps(c, x)
-  g.ve.surface.elements.push(c)
-  true
-
-loadRouter = (x) =>
-  r = new BaseElements.Router(g.ve.surface.baseRect,
-                              x.position.x, x.position.y, x.position.z)
-
-  setProps(r, x)
-  g.ve.surface.elements.push(r)
-  true
-
-loadSwitch = (x) =>
-  s = new BaseElements.Switch(g.ve.surface.baseRect,
-                              x.position.x, x.position.y, x.position.z)
-
-  setProps(s, x)
-  g.ve.surface.elements.push(s)
-  true
-
-loadLink = (x) =>
-  a = g.ve.surface.getElement(
-    x.endpoints[0].name,
-    x.endpoints[0].sys
-  )
-  if a == null
-    console.log("bad endpoint detected")
-
-  b = g.ve.surface.getElement(
-    x.endpoints[1].name,
-    x.endpoints[1].sys
-  )
-  if b == null
-    console.log("bad endpoint detected")
-
-  l = new BaseElements.Link(g.ve.surface.baseRect,
-        a.shp.obj3d.linep, b.shp.obj3d.linep, 0, 0, 5)
-
-  a.links.push(l)
-  a.shp.obj3d.lines.push(l.ln)
-  b.links.push(l)
-  b.shp.obj3d.lines.push(l.ln)
-
-  l.endpoint[0] = a
-  l.endpoint[1] = b
-
-  setProps(l, x)
-  g.ve.surface.elements.push(l)
-  true
-                        
 
 #Global event handlers
 root.vz_mousedown = (event) ->
@@ -420,7 +332,8 @@ BaseElements = {
 
 }
 
-#The ElementBox holds Element classes which may be added to a system
+#The ElementBox holds Element classes which may be added to a system,
+#aka the thing on the left side of the screen
 class ElementBox
   #Constructs an ElementBox object given a @ve visual environment
   constructor: (@ve) ->
@@ -459,6 +372,7 @@ class ElementBox
     )
 
 #The Surface holds visual representations of Systems and Elements
+#aka the majority of the screen
 class Surface
   #Constructs a Surface object given a @ve visual environment
   constructor: (@ve) ->
@@ -679,7 +593,6 @@ class NameManager
 
     s + @names[s]
 
-#TODO you are here
 class ExperimentControl
   constructor: (@ve) ->
   
@@ -775,12 +688,12 @@ class VisualEnvironment
     @renderer.clearDepth()
     @renderer.render(@scene, @camera)
 
-
 #This is the client side Addie, it talks to the Addie at cypress.deterlab.net
 #to manage a design
 class Addie
   constructor: (@ve) ->
 
+  #TODO: kill this and just use updates
   update: (x) =>
     console.log("updating object")
     console.log(x)
@@ -852,6 +765,92 @@ class Addie
       for x in xs
         x.id.name = x.props.name
         x.id.sys = x.props.sys
+
+  load: () =>
+    ($.get "/addie/"+dsg+"/design/read", (data) =>
+      console.log("design read success")
+      @doLoad(data)
+    ).fail (data) =>
+      console.log("design read fail" + data.status)
+
+  doLoad: (m) =>
+    links = []
+    for x in m.elements
+      switch x.type
+        when "Computer"
+          @loadComputer(x.object)
+        when "Router"
+          @loadRouter(x.object)
+        when "Switch"
+          @loadSwitch(x.object)
+        when "Link"
+          links.push(x.object)
+
+    for x in links
+      @loadLink(x)
+
+    @ve.render()
+
+    true
+
+  setProps: (x, p) =>
+    x.props = p
+    x.id.name = p.name
+    x.id.sys = p.sys
+    x.id.design = p.design
+
+  loadComputer: (x) =>
+    c = new BaseElements.Computer(@ve.surface.baseRect,
+                                  x.position.x, x.position.y, x.position.z)
+    @setProps(c, x)
+    @ve.surface.elements.push(c)
+    true
+
+  loadRouter: (x) =>
+    r = new BaseElements.Router(@ve.surface.baseRect,
+                                x.position.x, x.position.y, x.position.z)
+
+    @setProps(r, x)
+    @ve.surface.elements.push(r)
+    true
+
+  loadSwitch: (x) =>
+    s = new BaseElements.Switch(@ve.surface.baseRect,
+                                x.position.x, x.position.y, x.position.z)
+
+    @setProps(s, x)
+    @ve.surface.elements.push(s)
+    true
+
+  loadLink: (x) =>
+    a = @ve.surface.getElement(
+      x.endpoints[0].name,
+      x.endpoints[0].sys
+    )
+    if a == null
+      console.log("bad endpoint detected")
+
+    b = @ve.surface.getElement(
+      x.endpoints[1].name,
+      x.endpoints[1].sys
+    )
+    if b == null
+      console.log("bad endpoint detected")
+
+    l = new BaseElements.Link(@ve.surface.baseRect,
+          a.shp.obj3d.linep, b.shp.obj3d.linep, 0, 0, 5)
+
+    a.links.push(l)
+    a.shp.obj3d.lines.push(l.ln)
+    b.links.push(l)
+    b.shp.obj3d.lines.push(l.ln)
+
+    l.endpoint[0] = a
+    l.endpoint[1] = b
+
+    @setProps(l, x)
+    @ve.surface.elements.push(l)
+    true
 
 
 class EBoxSelectHandler
