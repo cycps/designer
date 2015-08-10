@@ -1056,7 +1056,7 @@ class PropsEditor
   save: () ->
       for k, v of @cprops
         for e in @elements
-          e.props[k] = v
+          e.props[k] = v if v != "..."
       @ve.addie.update(@elements)
 
   hide: () ->
@@ -1109,7 +1109,7 @@ class PropsEditor
       if isUniform(v)
         e[k] = v[0]
       else
-        e[k] = ""
+        e[k] = "..."
       true
 
     reduceUniform = (xps) ->
