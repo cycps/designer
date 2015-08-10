@@ -378,11 +378,12 @@ BaseElements = {
       @props = {
         name: @props.name,
         sys: @props.sys,
-        design: @props.dsg,
+        design: @props.design,
         endpoints: [
-          {name: "link0", sys: "root", design: dsg, ifname: ""},
-          {name: "link0", sys: "root", design: dsg, ifname: ""}
+          {name: "link0", sys: "root", design: dsg},
+          {name: "link0", sys: "root", design: dsg}
         ]
+        bindings: ""
       }
       @props[@endpoint[0].props.name] = "" if @endpoint[0] instanceof Model
       @props[@endpoint[1].props.name] = "" if @endpoint[1] instanceof Model
@@ -390,11 +391,13 @@ BaseElements = {
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
       @props.endpoints[0].sys = @endpoint[0].props.sys
-      @props.endpoints[0].ifname = @ep_ifx[0]
+      if !@isPhysical()
+        @props.endpoints[0].ifname = @ep_ifx[0]
 
       @props.endpoints[1].name = @endpoint[1].props.name
       @props.endpoints[1].sys = @endpoint[1].props.sys
-      @props.endpoints[1].ifname = @ep_ifx[1]
+      if !@isPhysical()
+        @props.endpoints[1].ifname = @ep_ifx[1]
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
@@ -811,8 +814,10 @@ class Addie
       true
 
     for _, l of link_updates
+      type = "Link"
+      type = "Plink" if l.isPhysical()
       link_msg.Elements.push(
-        { OID: l.id, Type: l.constructor.name, Element: l.props }
+        { OID: l.id, Type: type, Element: l.props }
       )
       true
 
