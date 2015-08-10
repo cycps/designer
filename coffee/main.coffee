@@ -253,6 +253,7 @@ BaseElements = {
       @props = {
         name: "sax0",
         sys: "root",
+        design: dsg,
         sense: "",
         actuate: ""
       }
