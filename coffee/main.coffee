@@ -176,6 +176,7 @@ Shapes = {
 BaseElements = {
 
   updateId: (e) ->
+    e.onIdUpdate() if e.onIdUpdate?
     e.id.name = e.props.name
     e.id.sys = e.props.sys
 
@@ -231,6 +232,14 @@ BaseElements = {
         design: dsg
       }
       @links = []
+
+
+    onIdUpdate: ->
+      for x in @links
+        if @id.name != @props.name
+          x.props[@props.name] = x.props[@id.name]
+          delete(x.props[@id.name])
+
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -356,9 +365,27 @@ BaseElements = {
     isInternet: ->
       @endpoint[0] instanceof Router and @endpoint[1] instanceof Router
 
+    isPhysical: ->
+      @endpoint[0] instanceof Model and @endpoint[1] instanceof Model or
+      @endpoint[0] instanceof Model and @endpoint[1] instanceof Sax or
+      @endpoint[1] instanceof Model and @endpoint[0] instanceof Sax
+
     applyWanProps: ->
       @props.capacity = 100
       @props.latency = 7
+
+    applyPhysicalProps: ->
+      @props = {
+        name: @props.name,
+        sys: @props.sys,
+        design: @props.dsg,
+        endpoints: [
+          {name: "link0", sys: "root", design: dsg, ifname: ""},
+          {name: "link0", sys: "root", design: dsg, ifname: ""}
+        ]
+      }
+      @props[@endpoint[0].props.name] = "" if @endpoint[0] instanceof Model
+      @props[@endpoint[1].props.name] = "" if @endpoint[1] instanceof Model
 
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
@@ -371,6 +398,9 @@ BaseElements = {
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
+
+    ifPhysicalToPlink: ->
+      @applyPhysicalProps() if @isPhysical()
     
     showProps: (f) ->
       f.add(@props, 'name')
@@ -1217,6 +1247,7 @@ class LinkingHandler
 
       @mh.ve.surface.updateLink(@mh.placingLink.ln)
       @mh.placingLink.ifInternetToWanLink()
+      @mh.placingLink.ifPhysicalToPlink()
       @mh.placingLink.setEndpointData()
 
       @mh.ve.addie.update([@mh.placingLink])
