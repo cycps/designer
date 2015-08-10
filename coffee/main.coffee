@@ -185,7 +185,7 @@ BaseElements = {
   #The Computer class is a representation of a computer
   Computer: class Computer
     constructor: (@parent, x, y, z) ->
-      @shp = new Shapes.Diamond(0x007474, x, y, z, 15)
+      @shp = new Shapes.Diamond(0x2390ff, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
@@ -216,7 +216,7 @@ BaseElements = {
   #The Model class is a represenation of a mathematical model of a physical object
   Model: class Model
     constructor: (@parent, x, y, z) ->
-      @shp = new Shapes.Rectangle(0x00ca47, x, y, z, 25, 25)
+      @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
@@ -230,7 +230,30 @@ BaseElements = {
         sys: "root",
         design: dsg
       }
+      @links = []
 
+    #cyjs generates the json for this object
+    cyjs: ->
+
+  #The Sax class is a representation of a sensing and acutation unit
+  Sax: class Sax
+    constructor: (@parent, x, y, z) ->
+      @shp = new Shapes.Circle(0x239f9c, x, y, z, 7)
+      @shp.obj3d.userData = this
+      @parent.obj3d.add(@shp.obj3d)
+      @props = {
+        name: "sax0",
+        sys: "root",
+        sense: "",
+        actuate: ""
+      }
+      @id = {
+        name: "sax0",
+        sys: "root",
+        design: dsg
+      }
+      @links = []
+    
     #cyjs generates the json for this object
     cyjs: ->
 
@@ -238,7 +261,7 @@ BaseElements = {
   #Router is a visual representation of an IP-network router 
   Router: class Router
     constructor: (@parent, x, y, z) ->
-      @shp = new Shapes.Circle(0x0047ca, x, y, z, 15)
+      @shp = new Shapes.Circle(0x23549F, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       #TODO you are here, all objects with changable props should have a props 
@@ -270,7 +293,7 @@ BaseElements = {
   #Switch is a visual representation of an IP-network swtich
   Switch: class Switch
     constructor: (@parent, x, y, z) ->
-      @shp = new Shapes.Rectangle(0x0047ca, x, y, z, 25, 25)
+      @shp = new Shapes.Rectangle(0x23549F, x, y, z, 25, 25)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
       @props = {
@@ -400,6 +423,7 @@ class ElementBox
       )
     )
     @addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
+    @addElement((box, x, y) -> new BaseElements.Sax(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 #aka the majority of the screen
