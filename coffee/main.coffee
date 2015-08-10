@@ -384,10 +384,10 @@ BaseElements = {
           {name: "link0", sys: "root", design: dsg},
           {name: "link0", sys: "root", design: dsg}
         ]
-        bindings: ""
+        #bindings: ""
       }
-      @props[@endpoint[0].props.name] = "" if @endpoint[0] instanceof Model
-      @props[@endpoint[1].props.name] = "" if @endpoint[1] instanceof Model
+      @props[@endpoint[0].props.name] = "" if @endpoint[0] #instanceof Model
+      @props[@endpoint[1].props.name] = "" if @endpoint[1] #instanceof Model
 
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
