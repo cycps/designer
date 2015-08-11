@@ -8,7 +8,9 @@ getParameterByName = (name) =>
 
 initViz = () =>
   g.ve = new VisualEnvironment(document.getElementById("surface"))
-  g.ve.ebox = new ElementBox(g.ve)
+  g.ve.ebox = new StaticElementBox(g.ve, 120, g.ve.height/2 - 65)
+  mh = g.ve.height - 140
+  g.ve.mbox = new ModelBox(g.ve, mh, (g.ve.height - 140)/2 - mh/2.0 - 60)
   g.ve.surface = new Surface(g.ve)
   g.ve.datgui = null
   g.ve.render(g.ve)
@@ -222,9 +224,29 @@ BaseElements = {
       @parent.obj3d.add(@shp.obj3d)
       @props = {
         name: "model0",
-        sys: "root",
-        params: "",
         equations: ""
+      }
+
+    instantiate: (parent, x, y, z) ->
+      obj = new Phyo(parent, x, y, z)
+      obj.props.model = @props.name
+      obj
+
+    #cyjs generates the json for this object
+    cyjs: ->
+  
+  Phyo: class Phyo
+    constructor: (@parent, x, y, z) ->
+      @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
+      @shp.obj3d.userData = this
+      @model = null
+      if @parent?
+        @parent.obj3d.add(@shp.obj3d)
+      @props = {
+        name: "model0",
+        sys: "root",
+        model: ""
+        params: "",
       }
       @id = {
         name: "model0",
@@ -233,6 +255,10 @@ BaseElements = {
       }
       @links = []
 
+
+    sync: ->
+      if @model?
+        @props.model = @model.props.name
 
     onIdUpdate: ->
       for x in @links
@@ -368,12 +394,12 @@ BaseElements = {
       @endpoint[0] instanceof Router and @endpoint[1] instanceof Router
 
     isPhysical: ->
-      @endpoint[0] instanceof Model and @endpoint[1] instanceof Model or
-      @endpoint[0] instanceof Model and @endpoint[1] instanceof Sax or
-      @endpoint[1] instanceof Model and @endpoint[0] instanceof Sax
+      @endpoint[0] instanceof Phyo and @endpoint[1] instanceof Phyo or
+      @endpoint[0] instanceof Phyo and @endpoint[1] instanceof Sax or
+      @endpoint[1] instanceof Phyo and @endpoint[0] instanceof Sax
 
     isIfxPhysical: (i) ->
-      @endpoint[i] instanceof Model
+      @endpoint[i] instanceof Phyo
       #@endpoint[i] instanceof Sax
     
 
@@ -393,8 +419,8 @@ BaseElements = {
         ],
         bindings: ["",""]
       }
-      @props[@endpoint[0].props.name] = "" if @endpoint[0] #instanceof Model
-      @props[@endpoint[1].props.name] = "" if @endpoint[1] #instanceof Model
+      @props[@endpoint[0].props.name] = "" if @endpoint[0] #instanceof Phyo
+      @props[@endpoint[1].props.name] = "" if @endpoint[1] #instanceof Phyo
 
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
@@ -437,11 +463,11 @@ BaseElements = {
 #aka the thing on the left side of the screen
 class ElementBox
   #Constructs an ElementBox object given a @ve visual environment
-  constructor: (@ve) ->
-    @height = @ve.height - 10
+  constructor: (@ve, @height, @y) ->
+    #@height = @ve.height - 10
     @width = 75
     @x = -@ve.width/2  + @width / 2 + 5
-    @y =  0
+    #@y =  0
     @z = 5
     @box = new Shapes.Rectangle(0x404040, @x, @y, @z, @width, @height)
     @box.obj3d.userData = this
@@ -456,11 +482,14 @@ class ElementBox
     col = @count % 2
 
     _x = if col == 0 then -18 else 18
-    _y = (@ve.height / 2 - 25) - row * 35
+    _y = (@height / 2 - 25) - row * 35
     ef(@box, _x, _y)
     @count++
 
   #addBaseElements adds the common base elements to the ElementBox
+  addBaseElements: ->
+
+class StaticElementBox extends ElementBox
   addBaseElements: ->
     @addElement((box, x, y) -> new BaseElements.Computer(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 5))
@@ -471,8 +500,12 @@ class ElementBox
         x, y, 5, true
       )
     )
-    @addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Sax(box, x, y, 5))
+
+
+class ModelBox extends ElementBox
+  addBaseElements: ->
+    @addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 #aka the majority of the screen
@@ -873,7 +906,7 @@ class Addie
       @doLoad(data)
       true
     ).fail (data) =>
-      console.log("design read fail" + data.status)
+      console.log("design read fail " + data.status)
 
   doLoad: (m) =>
     links = []
@@ -887,8 +920,8 @@ class Addie
           @loadRouter(x.object)
         when "Switch"
           @loadSwitch(x.object)
-        when "Model"
-          @loadModel(x.object)
+        when "Phyo"
+          @loadPhyo(x.object)
         when "Sax"
           @loadSax(x.object)
         when "Link"
@@ -920,8 +953,8 @@ class Addie
     @ve.surface.elements.push(c)
     true
 
-  loadModel: (x) =>
-    m = new BaseElements.Model(@ve.surface.baseRect,
+  loadPhyo: (x) =>
+    m = new BaseElements.Phyo(@ve.surface.baseRect,
                                x.position.x, x.position.y, x.position.z)
     @setProps(m, x)
     @ve.surface.elements.push(m)
@@ -1025,7 +1058,7 @@ class EBoxSelectHandler
 
   test: (ixs) ->
     ixs.length > 2 and
-    ixs[ixs.length - 2].object.userData instanceof ElementBox and
+    ixs[ixs.length - 2].object.userData instanceof StaticElementBox and
     ixs[0].object.userData.cyjs?
 
   handleDown: (ixs) ->
@@ -1063,6 +1096,65 @@ class EBoxSelectHandler
       @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       @mh.ve.render()
 
+class MBoxSelectHandler
+  constructor: (@mh) ->
+    @model = null
+    @instance = null
+
+
+  test: (ixs) ->
+    ixs.length > 2 and
+    ixs[ixs.length - 2].object.userData instanceof ModelBox and
+    ixs[0].object.userData.cyjs?
+  
+  handleDown: (ixs) ->
+    e = ixs[0].object.userData
+    @mh.ve.surface.clearSelection()
+    @model = e
+
+    console.log('mbox down')
+    @mh.ve.container.onmousemove = (eve) => @handleMove0(eve)
+    @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
+  
+  handleUp: (event) ->
+    console.log('mbox up')
+
+    if @instance?
+      @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
+      @mh.ve.addie.update([@mh.placingObject])
+      @mh.ve.surface.clearSelection()
+
+    if !@instance?
+      @mh.ve.equationEditor.show(@model)
+      @mh.ve.propsEditor.elements = [@model]
+      @mh.ve.propsEditor.show()
+
+    @mh.ve.container.onmousemove = null
+    @mh.ve.container.onmouseup = null
+    @instance = null
+  
+  handleMove0: (event) ->
+    #console.log('mbox move0')
+    @instance = @mh.makePlacingObject(@model.instantiate(null, 0, 0, 0, 25, 25))
+    #@instance.props.model = @model.props.name
+    @instance.model = @model
+    @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
+
+  handleMove1: (event) ->
+    #console.log('mbox move1')
+    @mh.updateMouse(event)
+    @mh.ve.propsEditor.hide()
+    @mh.ve.equationEditor.hide()
+    @mh.ve.surface.clearSelection()
+
+    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
+    bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+
+    if bix.length > 0
+      ox = @mh.placingObject.shp.geom.boundingSphere.radius
+      @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
+      @mh.ve.render()
+
 class SurfaceElementSelectHandler
   constructor: (@mh) ->
     @start = new THREE.Vector3(0,0,0)
@@ -1083,8 +1175,8 @@ class SurfaceElementSelectHandler
     @mh.ve.propsEditor.elements = [e]
     @mh.ve.propsEditor.show()
 
-    if e instanceof BaseElements.Model
-      @mh.ve.equationEditor.show(e)
+    #if e instanceof BaseElements.Model
+    #  @mh.ve.equationEditor.show(e)
 
     @mh.placingObject = e
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
@@ -1124,6 +1216,9 @@ class PropsEditor
     @cprops = {}
 
   show: () ->
+    for e in @elements
+      e.sync() if e.sync?
+
     @commonProps()
     @datgui = new dat.GUI()
     for k, v of @cprops
@@ -1365,6 +1460,7 @@ class MouseHandler
   constructor: (@ve) ->
     @pos = new THREE.Vector3(0, 0, 1)
     @eboxSH = new EBoxSelectHandler(this)
+    @mboxSH = new MBoxSelectHandler(this)
     @surfaceESH = new SurfaceElementSelectHandler(this)
     @surfaceSSH = new SurfaceSpaceSelectHandler(this)
     @linkingH = new LinkingHandler(this)
@@ -1412,6 +1508,7 @@ class MouseHandler
 
     #delegate the handling of the event to one of the handlers
     if      @eboxSH.test(ixs) then @eboxSH.handleDown(ixs)
+    else if @mboxSH.test(ixs) then @mboxSH.handleDown(ixs)
     else if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
     else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
 
