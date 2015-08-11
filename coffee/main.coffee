@@ -383,8 +383,8 @@ BaseElements = {
         endpoints: [
           {name: "link0", sys: "root", design: dsg},
           {name: "link0", sys: "root", design: dsg}
-        ]
-        #bindings: ""
+        ],
+        bindings: ["",""]
       }
       @props[@endpoint[0].props.name] = "" if @endpoint[0] #instanceof Model
       @props[@endpoint[1].props.name] = "" if @endpoint[1] #instanceof Model
@@ -394,11 +394,19 @@ BaseElements = {
       @props.endpoints[0].sys = @endpoint[0].props.sys
       if !@isPhysical()
         @props.endpoints[0].ifname = @ep_ifx[0]
+      if @isPhysical()
+        @props.bindings[0] = @props[@endpoint[0].props.name]
 
       @props.endpoints[1].name = @endpoint[1].props.name
       @props.endpoints[1].sys = @endpoint[1].props.sys
       if !@isPhysical()
         @props.endpoints[1].ifname = @ep_ifx[1]
+      if @isPhysical()
+        @props.bindings[1] = @props[@endpoint[1].props.name]
+
+    unpackBindings: ->
+          @props[@endpoint[0].props.name] = @props.bindings[0]
+          @props[@endpoint[1].props.name] = @props.bindings[1]
 
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
@@ -862,6 +870,7 @@ class Addie
 
   doLoad: (m) =>
     links = []
+    plinks = []
     for x in m.elements
       switch x.type
         when "Computer"
@@ -870,11 +879,20 @@ class Addie
           @loadRouter(x.object)
         when "Switch"
           @loadSwitch(x.object)
+        when "Model"
+          @loadModel(x.object)
+        when "Sax"
+          @loadSax(x.object)
         when "Link"
           links.push(x.object)
+        when "Plink"
+          plinks.push(x.object)
 
     for x in links
       @loadLink(x)
+    
+    for x in plinks
+      @loadPlink(x)
 
     @ve.render()
 
@@ -891,6 +909,20 @@ class Addie
                                   x.position.x, x.position.y, x.position.z)
     @setProps(c, x)
     @ve.surface.elements.push(c)
+    true
+
+  loadModel: (x) =>
+    m = new BaseElements.Model(@ve.surface.baseRect,
+                               x.position.x, x.position.y, x.position.z)
+    @setProps(m, x)
+    @ve.surface.elements.push(m)
+    true
+
+  loadSax: (x) =>
+    s = new BaseElements.Sax(@ve.surface.baseRect,
+                               x.position.x, x.position.y, x.position.z)
+    @setProps(s, x)
+    @ve.surface.elements.push(s)
     true
 
   loadRouter: (x) =>
@@ -938,6 +970,42 @@ class Addie
     l.ep_ifx[1] = x.endpoints[1].ifname
 
     @setProps(l, x)
+    l.setEndpointData()
+    @ve.surface.elements.push(l)
+    true
+
+  #grosspants
+  loadPlink: (x) =>
+    a = @ve.surface.getElement(
+      x.endpoints[0].name,
+      x.endpoints[0].sys
+    )
+    if a == null
+      console.log("bad endpoint detected")
+
+    b = @ve.surface.getElement(
+      x.endpoints[1].name,
+      x.endpoints[1].sys
+    )
+    if b == null
+      console.log("bad endpoint detected")
+
+    l = new BaseElements.Link(@ve.surface.baseRect,
+          a.shp.obj3d.linep, b.shp.obj3d.linep, 0, 0, 5)
+
+    a.links.push(l)
+    a.shp.obj3d.lines.push(l.ln)
+    b.links.push(l)
+    b.shp.obj3d.lines.push(l.ln)
+
+    l.endpoint[0] = a
+    l.endpoint[1] = b
+    #l.ep_ifx[0] = x.endpoints[0].ifname
+    #l.ep_ifx[1] = x.endpoints[1].ifname
+
+    l.applyPhysicalProps()
+    @setProps(l, x)
+    l.unpackBindings()
     l.setEndpointData()
     @ve.surface.elements.push(l)
     true
@@ -1086,6 +1154,7 @@ class PropsEditor
         continue if k == 'interfaces'
         continue if k == 'path'
         continue if k == 'equations'
+        continue if k == 'bindings'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
