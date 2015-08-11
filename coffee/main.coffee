@@ -224,7 +224,7 @@ BaseElements = {
         name: "model0",
         sys: "root",
         params: "",
-        eqtns: ""
+        equations: ""
       }
       @id = {
         name: "model0",
@@ -1085,7 +1085,7 @@ class PropsEditor
         continue if k == 'endpoints'
         continue if k == 'interfaces'
         continue if k == 'path'
-        continue if k == 'eqtns'
+        continue if k == 'equations'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
@@ -1129,13 +1129,13 @@ class EquationEditor
   show: (m) ->
     @model = m
     console.log("showing equation editor")
-    $("#eqtnSrc").val(@model.props.eqtns)
+    $("#eqtnSrc").val(@model.props.equations)
     $("#eqtnEditor").css("display", "inline")
   
   hide: () ->
     console.log("hiding equation editor")
     if @model?
-      @model.props.eqtns = $("#eqtnSrc").val()
+      @model.props.equations= $("#eqtnSrc").val()
     $("#eqtnEditor").css("display", "none")
 
 
@@ -1320,8 +1320,11 @@ class MouseHandler
   #onmousedown handlers
   baseDown: (event) ->
 
-    @ve.propsEditor.hide()
+    #the order actually matters here, need to hide the equation editor first
+    #so the equations get saved to the underlying object before the props
+    #editor sends them to addie
     @ve.equationEditor.hide()
+    @ve.propsEditor.hide()
 
     #get the list of objects the mouse click intersected
     #@ve.scene.updateMatrixWorld()
