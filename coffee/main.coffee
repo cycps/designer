@@ -338,7 +338,7 @@ BaseElements = {
       @ln = new Shapes.Line(0xababab, from, to, z)
       @ln.obj3d.userData = this
       @props = {
-        name: "lnk0",
+        name: "link0",
         sys: "root",
         design: dsg,
         capacity: 1000,
@@ -349,7 +349,7 @@ BaseElements = {
         ]
       }
       @id = {
-        name: "lnk0"
+        name: "link0"
         sys: "root"
         design: dsg
       }
@@ -872,6 +872,7 @@ class Addie
     links = []
     plinks = []
     for x in m.elements
+      @ve.namemanager.getName(x.type.toLowerCase())
       switch x.type
         when "Computer"
           @loadComputer(x.object)
@@ -887,6 +888,7 @@ class Addie
           links.push(x.object)
         when "Plink"
           plinks.push(x.object)
+          @ve.namemanager.getName("link")
 
     for x in links
       @loadLink(x)
@@ -1266,7 +1268,7 @@ class LinkingHandler
 
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
-      console.log "! lnk0 " + e.constructor.name
+      console.log "! link0 " + e.constructor.name
       pos0 = ixs[0].object.linep
       pos1 = new THREE.Vector3(
         ixs[0].object.position.x,
@@ -1278,7 +1280,7 @@ class LinkingHandler
         pos0, pos1, 0, 0, 5
       )
       @mh.ve.surface.elements.push(@mh.placingLink)
-      @mh.placingLink.props.name = @mh.ve.namemanager.getName("lnk")
+      @mh.placingLink.props.name = @mh.ve.namemanager.getName("link")
       @mh.placingLink.id.name = @mh.placingLink.props.name
       
       ifname = ""
@@ -1296,7 +1298,7 @@ class LinkingHandler
       @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
       @mh.ve.container.onmousedown = (eve) => @handleDown1(eve)
     else
-      console.log "! lnk0 miss"
+      console.log "! link0 miss"
 
   handleDown1: (event) ->
     @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
@@ -1304,7 +1306,7 @@ class LinkingHandler
                 @mh.ve.surface.baseRect.obj3d.children)
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
-      console.log "! lnk1 " + e.constructor.name
+      console.log "! link1 " + e.constructor.name
       @mh.placingLink.ln.geom.vertices[1] = ixs[0].object.linep
       ixs[0].object.lines.push(@mh.placingLink.ln)
       
@@ -1331,7 +1333,7 @@ class LinkingHandler
       @mh.ve.container.onmousemove = null
       @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
     else
-      console.log "! lnk1 miss"
+      console.log "! link1 miss"
 
   handleMove0: (event) ->
     @.mh.updateMouse(event)
