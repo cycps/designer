@@ -256,6 +256,7 @@ BaseElements = {
         design: dsg,
         sense: "",
         actuate: ""
+        interfaces: {}
       }
       @id = {
         name: "sax0",
@@ -371,6 +372,12 @@ BaseElements = {
       @endpoint[0] instanceof Model and @endpoint[1] instanceof Sax or
       @endpoint[1] instanceof Model and @endpoint[0] instanceof Sax
 
+    isIfxPhysical: (i) ->
+      @endpoint[i] instanceof Model
+      #@endpoint[i] instanceof Sax
+    
+
+
     applyWanProps: ->
       @props.capacity = 100
       @props.latency = 7
@@ -392,14 +399,14 @@ BaseElements = {
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
       @props.endpoints[0].sys = @endpoint[0].props.sys
-      if !@isPhysical()
+      if !@isIfxPhysical(1) #yes, this is based on the other side of the connection
         @props.endpoints[0].ifname = @ep_ifx[0]
       if @isPhysical()
         @props.bindings[0] = @props[@endpoint[0].props.name]
 
       @props.endpoints[1].name = @endpoint[1].props.name
       @props.endpoints[1].sys = @endpoint[1].props.sys
-      if !@isPhysical()
+      if !@isIfxPhysical(0)
         @props.endpoints[1].ifname = @ep_ifx[1]
       if @isPhysical()
         @props.bindings[1] = @props[@endpoint[1].props.name]
