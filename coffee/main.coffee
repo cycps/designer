@@ -228,6 +228,7 @@ BaseElements = {
       @parent.obj3d.add(@shp.obj3d)
       @props = {
         name: "model0",
+        params: "",
         equations: ""
       }
       @id = {
@@ -255,7 +256,7 @@ BaseElements = {
         name: "model0",
         sys: "root",
         model: ""
-        params: "",
+        args: "",
       }
       @id = {
         name: "model0",
@@ -263,11 +264,43 @@ BaseElements = {
         design: dsg
       }
       @links = []
+      @args = []
 
+    addArgs: () ->
+      _args = @model.props.params
+        .replace(" ", "")
+        .split(",")
+        .map((x) -> x.replace(" ", ""))
+        .filter((x) -> x.length != 0)
+
+      for p in _args
+        if !@props[p]?
+          @props[p] = ""
+
+      for p in @args
+        if p not in _args
+          delete @props[p]
+
+      @args = _args
+      true
+
+    loadArgValues: () ->
+      _args = @props.args
+        .split(",")
+        .filter((x) -> x.length != 0)
+        .map((x) -> x.split("=").filter((y) -> y.length != 0))
+
+      for x in _args
+        @props[x[0]] = x[1]
+        @args.push(x[0])
 
     sync: ->
       if @model?
         @props.model = @model.props.name
+        @addArgs()
+        @props.args = ""
+        for p in @args
+          @props.args += (p+"="+@props[p]+",")
 
     onIdUpdate: ->
       for x in @links
@@ -1027,6 +1060,7 @@ class Addie
     m = loadedModels[p.props.model]
     m.instances.push(p)
     p.model = m
+    p.loadArgValues()
     true
 
   loadSax: (x) =>
@@ -1208,6 +1242,7 @@ class MBoxSelectHandler
     @instance = @mh.makePlacingObject(@model.instantiate(null, 0, 0, 0, 25, 25))
     #@instance.props.model = @model.props.name
     @instance.model = @model
+    @instance.addArgs()
     @model.instances.push(@instance)
     @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
 
@@ -1300,6 +1335,7 @@ class PropsEditor
       for k, v of @cprops
         for e in @elements
           e.props[k] = v if v != "..."
+          e.sync() if e.sync?
       @ve.addie.update(@elements)
 
   hide: () ->
@@ -1328,6 +1364,7 @@ class PropsEditor
         continue if k == 'endpoints'
         continue if k == 'interfaces'
         continue if k == 'path'
+        continue if k == 'args'
         continue if k == 'equations'
         continue if k == 'bindings'
         continue if k == 'name' and @elements.length > 1
