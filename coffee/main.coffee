@@ -41,6 +41,9 @@ root.vz_mousedown = (event) ->
 root.swapcontrol = (event) =>
   g.ve.xpcontrol.swapIn()
 
+root.newModel = (event) ->
+  g.ve.mbox.newModel()
+
 root.save = () =>
   g.ve.xpcontrol.save()
 
@@ -180,7 +183,8 @@ BaseElements = {
   updateId: (e) ->
     e.onIdUpdate() if e.onIdUpdate?
     e.id.name = e.props.name
-    e.id.sys = e.props.sys
+    if e.id.sys?
+      e.id.sys = e.props.sys
 
   currentId: (d) ->
     {name: d.props.name, sys: d.props.sys, design: dsg }
@@ -226,11 +230,16 @@ BaseElements = {
         name: "model0",
         equations: ""
       }
+      @id = {
+        name: "model0"
+      }
+      @instances = []
 
     instantiate: (parent, x, y, z) ->
       obj = new Phyo(parent, x, y, z)
       obj.props.model = @props.name
       obj
+
 
     #cyjs generates the json for this object
     cyjs: ->
@@ -483,8 +492,9 @@ class ElementBox
 
     _x = if col == 0 then -18 else 18
     _y = (@height / 2 - 25) - row * 35
-    ef(@box, _x, _y)
+    e = ef(@box, _x, _y)
     @count++
+    e
 
   #addBaseElements adds the common base elements to the ElementBox
   addBaseElements: ->
@@ -504,8 +514,15 @@ class StaticElementBox extends ElementBox
 
 
 class ModelBox extends ElementBox
+  newModel: ()->
+    m = @addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
+    m.props.name = @ve.namemanager.getName("model")
+    m.id.name = m.props.name
+    @ve.render()
+    @ve.addie.update([m])
+
   addBaseElements: ->
-    @addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
+    #@addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 #aka the majority of the screen
@@ -837,6 +854,7 @@ class Addie
     #build the update sets
     link_updates = {}
     node_updates = {}
+    model_updates = {}
 
     for x in xs
 
@@ -850,11 +868,26 @@ class Addie
         node_updates[JSON.stringify(x.endpoint[0].id)] = x.endpoint[0]
         node_updates[JSON.stringify(x.endpoint[1].id)] = x.endpoint[1]
 
+      if x instanceof BaseElements.Model
+        model_updates[x.id.name] = x
+        for i in x.instances
+          node_updates[JSON.stringify(i.id)] = i
+
       true
 
     #build the update messages
+    model_msg = { Elements: [] }
     node_msg = { Elements: [] }
     link_msg = { Elements: [] }
+
+    for _, m of model_updates
+      model_msg.Elements.push(
+        {
+          OID: { name: m.id.name, sys: "", design: dsg },
+          Type: "Model", Element: m.props
+        }
+      )
+      true
 
     for _, n of node_updates
       node_msg.Elements.push(
@@ -892,9 +925,28 @@ class Addie
 
           doLinkUpdate()
 
+    doModelUpdate = () =>
+      console.log("model update")
+      console.log(model_msg)
 
-    #do the updates
-    if node_msg.Elements.length > 0
+      if model_msg.Elements.length > 0
+        $.post "/addie/"+dsg+"/design/update", JSON.stringify(model_msg), (data) =>
+          for _, m of model_updates
+            BaseElements.updateId(m)
+          for _, n of node_updates
+            n.sync() if n.sync?
+
+          doNodeUpdate()
+
+
+    #do the updates since this is a linked structure we have to be a bit careful
+    #about update ordering, here we do models, then nodes then links. This is
+    #because some nodes reference models, and all links reference nodes. At
+    #each stage of the update we update the internals of the data structures at
+    #synchronization points within the updates to ensure consistency
+    if model_msg.Elements.length > 0
+      doModelUpdate()
+    else if node_msg.Elements.length > 0
       doNodeUpdate()
     else if link_msg.Elements.length > 0
       doLinkUpdate()
@@ -908,10 +960,12 @@ class Addie
     ).fail (data) =>
       console.log("design read fail " + data.status)
 
-  doLoad: (m) =>
+  loadedModels = {}
+
+  loadElements: (elements) =>
     links = []
     plinks = []
-    for x in m.elements
+    for x in elements
       @ve.namemanager.getName(x.type.toLowerCase())
       switch x.type
         when "Computer"
@@ -940,6 +994,18 @@ class Addie
 
     true
 
+  loadModels: (models) =>
+    for x in models
+      m = @ve.mbox.addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
+      m.props = x
+      m.id.name = x.name
+      loadedModels[m.props.name] = m
+
+  doLoad: (m) =>
+    @loadModels(m.models)
+    @loadElements(m.elements)
+    true
+
   setProps: (x, p) =>
     x.props = p
     x.id.name = p.name
@@ -954,10 +1020,13 @@ class Addie
     true
 
   loadPhyo: (x) =>
-    m = new BaseElements.Phyo(@ve.surface.baseRect,
+    p = new BaseElements.Phyo(@ve.surface.baseRect,
                                x.position.x, x.position.y, x.position.z)
-    @setProps(m, x)
-    @ve.surface.elements.push(m)
+    @setProps(p, x)
+    @ve.surface.elements.push(p)
+    m = loadedModels[p.props.model]
+    m.instances.push(p)
+    p.model = m
     true
 
   loadSax: (x) =>
@@ -1121,6 +1190,7 @@ class MBoxSelectHandler
 
     if @instance?
       @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
+      @mh.placingObject.sync()
       @mh.ve.addie.update([@mh.placingObject])
       @mh.ve.surface.clearSelection()
 
@@ -1138,6 +1208,7 @@ class MBoxSelectHandler
     @instance = @mh.makePlacingObject(@model.instantiate(null, 0, 0, 0, 25, 25))
     #@instance.props.model = @model.props.name
     @instance.model = @model
+    @model.instances.push(@instance)
     @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
 
   handleMove1: (event) ->
