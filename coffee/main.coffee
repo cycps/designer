@@ -47,6 +47,9 @@ root.newModel = (event) ->
 root.save = () =>
   g.ve.xpcontrol.save()
 
+root.analyze = () =>
+  g.ve.addie.analyze()
+
 #Global state holder
 g = {}
 
@@ -1154,6 +1157,9 @@ class Addie
     l.setEndpointData()
     @ve.surface.elements.push(l)
     true
+
+  analyze: () =>
+    console.log("asking addie to analyze the design")
 
 
 class EBoxSelectHandler
