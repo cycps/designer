@@ -38,17 +38,14 @@ root.go = ->
 root.vz_mousedown = (event) ->
   g.ve.mouseh.ondown(event)
 
-root.swapcontrol = (event) =>
-  g.ve.xpcontrol.swapIn()
+root.run = (event) =>
+  g.ve.addie.run()
 
 root.newModel = (event) ->
   g.ve.mbox.newModel()
 
-root.save = () =>
-  g.ve.xpcontrol.save()
-
-root.analyze = () =>
-  g.ve.addie.analyze()
+root.compile= () =>
+  g.ve.addie.compile()
 
 #Global state holder
 g = {}
@@ -782,6 +779,7 @@ class NameManager
 
     s + @names[s]
 
+###
 class ExperimentControl
   constructor: (@ve) ->
   
@@ -839,6 +837,7 @@ class ExperimentControl
 
   update: ->
 
+###
 
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
@@ -868,7 +867,7 @@ class VisualEnvironment
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
     @namemanager = new NameManager()
-    @xpcontrol = new ExperimentControl(this)
+    #@xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
     @propsEditor = new PropsEditor(this)
     @equationEditor = new EquationEditor(this)
@@ -1158,8 +1157,15 @@ class Addie
     @ve.surface.elements.push(l)
     true
 
-  analyze: () =>
-    console.log("asking addie to analyze the design")
+  compile: () =>
+   console.log("asking addie to compile the design")
+   $.get "/addie/"+dsg+"/design/compile", (data) =>
+     console.log("compilation result: " + data)
+
+  run: () =>
+    console.log("asking addie to run the experiment")
+    $.get "/addie/"+dsg+"/design/run", (data) =>
+      console.log("run result: " + data)
 
 
 class EBoxSelectHandler
