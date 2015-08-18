@@ -1166,6 +1166,7 @@ class Addie
     console.log("asking addie to run the experiment")
     $.get "/addie/"+dsg+"/design/run", (data) =>
       console.log("run result: " + data)
+    window.open(location.origin + "/results.html?xp=" + dsg)
 
 
 class EBoxSelectHandler
