@@ -44,8 +44,11 @@ root.run = (event) =>
 root.newModel = (event) ->
   g.ve.mbox.newModel()
 
-root.compile= () =>
+root.compile = () =>
   g.ve.addie.compile()
+
+root.showSimSettings = () =>
+  g.ve.showSimSettings()
 
 #Global state holder
 g = {}
@@ -839,6 +842,14 @@ class ExperimentControl
 
 ###
 
+class SimSettings
+  constructor: () ->
+    @props = {
+      begin: 0,
+      end: 0,
+      maxStep: 1e-3
+    }
+
 #VisualEnvironment holds the state associated with the Threejs objects used
 #to render Surfaces and the ElementBox. This class also contains methods
 #for controlling and interacting with this group of Threejs objects.
@@ -871,11 +882,18 @@ class VisualEnvironment
     @addie = new Addie(this)
     @propsEditor = new PropsEditor(this)
     @equationEditor = new EquationEditor(this)
+    @simSettings = new SimSettings()
 
   render: ->
     @renderer.clear()
     @renderer.clearDepth()
     @renderer.render(@scene, @camera)
+
+  showSimSettings: () ->
+    @propsEditor.hide()
+    @propsEditor.elements = [@simSettings]
+    @propsEditor.show()
+
 
 #This is the client side Addie, it talks to the Addie at cypress.deterlab.net
 #to manage a design
@@ -890,6 +908,7 @@ class Addie
     link_updates = {}
     node_updates = {}
     model_updates = {}
+    settings_updates = []
 
     for x in xs
 
@@ -908,12 +927,16 @@ class Addie
         for i in x.instances
           node_updates[JSON.stringify(i.id)] = i
 
+      if x instanceof SimSettings
+        settings_updates.push(x)
+
       true
 
     #build the update messages
     model_msg = { Elements: [] }
     node_msg = { Elements: [] }
     link_msg = { Elements: [] }
+    settings_msg = { Elements: [] }
 
     for _, m of model_updates
       model_msg.Elements.push(
@@ -935,6 +958,15 @@ class Addie
       type = "Plink" if l.isPhysical()
       link_msg.Elements.push(
         { OID: l.id, Type: type, Element: l.props }
+      )
+      true
+
+    for s in settings_updates
+      settings_msg.Elements.push(
+        {
+          OID: { name: "", sys: "", design: dsg },
+          Type: "SimSettings", Element: s.props
+        }
       )
       true
 
@@ -973,6 +1005,15 @@ class Addie
 
           doNodeUpdate()
 
+    doSettingsUpdate = () =>
+      console.log("settings update")
+      console.log(settings_msg)
+
+      if settings_msg.Elements.length > 0
+        $.post "/addie/"+dsg+"/design/update", JSON.stringify(settings_msg),
+          (data) =>
+            console.log("settings update complete")
+
 
     #do the updates since this is a linked structure we have to be a bit careful
     #about update ordering, here we do models, then nodes then links. This is
@@ -985,6 +1026,10 @@ class Addie
       doNodeUpdate()
     else if link_msg.Elements.length > 0
       doLinkUpdate()
+
+    #settings update is independent of other updates so we can break out of the
+    #above update structure
+    doSettingsUpdate()
 
   load: () =>
     ($.get "/addie/"+dsg+"/design/read", (data, status, jqXHR) =>
@@ -1036,9 +1081,13 @@ class Addie
       m.id.name = x.name
       loadedModels[m.props.name] = m
 
+  loadSimSettings: (settings) =>
+    @ve.simSettings.props = settings
+
   doLoad: (m) =>
     @loadModels(m.models)
     @loadElements(m.elements)
+    @loadSimSettings(m.simSettings)
     true
 
   setProps: (x, p) =>
