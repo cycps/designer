@@ -12,11 +12,11 @@ getParameterByName = (name) =>
 root.go = ->
     
   dsg = getParameterByName("xp")
+  $("#title").html(dsg)
   console.log("do you know the muffin man?")
   ($.get "/addie/"+dsg+"/analyze/rawData", (raw) =>
     console.log("raw data read success")
     console.log(raw)
-    #$("#theResults").html(data)
     g = new Dygraph(
       document.getElementById("theResults"),
       raw,
