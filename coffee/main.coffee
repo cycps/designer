@@ -50,6 +50,9 @@ root.compile = () =>
 root.showSimSettings = () =>
   g.ve.showSimSettings()
 
+root.diagnostics = () =>
+  g.ve.showDiagnostics()
+
 #Global state holder
 g = {}
 
@@ -893,6 +896,9 @@ class VisualEnvironment
     @propsEditor.hide()
     @propsEditor.elements = [@simSettings]
     @propsEditor.show()
+
+  showDiagnostics: () =>
+    console.log("Showing Diagnostics")
 
 
 #This is the client side Addie, it talks to the Addie at cypress.deterlab.net
