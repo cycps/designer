@@ -1328,20 +1328,25 @@ class MBoxSelectHandler
   handleUp: (event) ->
     console.log('mbox up')
 
-    if @stillOnMBox(event)
-      @mh.ve.surface.removeElement(@mh.placingObject)
-      false
-    else
-      if @instance?
+    if @instance?
+      if @stillOnMBox(event)
+        @mh.ve.surface.removeElement(@mh.placingObject)
+        idx = @model.instances.indexOf(@instance)
+        if idx > -1
+          @model.instances.splice(idx, 1)
+        @instance = null
+        @mh.placingObject = null
+        false
+      else
         @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
         @mh.placingObject.sync()
         @mh.ve.addie.update([@mh.placingObject])
         @mh.ve.surface.clearSelection()
 
-      if !@instance?
-        @mh.ve.propsEditor.elements = [@model]
-        @mh.ve.propsEditor.show()
-        @mh.ve.equationEditor.show(@model)
+    else if !@instance?
+      @mh.ve.propsEditor.elements = [@model]
+      @mh.ve.propsEditor.show()
+      @mh.ve.equationEditor.show(@model)
 
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmouseup = null
