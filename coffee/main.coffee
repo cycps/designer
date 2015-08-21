@@ -50,7 +50,7 @@ root.compile = () =>
 root.showSimSettings = () =>
   g.ve.showSimSettings()
 
-root.diagnostics = () =>
+root.showDiagnostics = () =>
   g.ve.showDiagnostics()
 
 #Global state holder
@@ -261,8 +261,9 @@ BaseElements = {
       @props = {
         name: "model0",
         sys: "root",
-        model: ""
+        model: "",
         args: "",
+        init: ""
       }
       @id = {
         name: "model0",
@@ -587,6 +588,17 @@ class Surface
     @elements.push(e)
     @ve.render()
     e
+
+  removeElement: (e) =>
+    idx = @elements.indexOf(e)
+    if idx > -1
+      @elements.splice(idx, 1)
+
+    idx = @baseRect.obj3d.children.indexOf(e.shp.obj3d)
+    if idx > -1
+      @baseRect.obj3d.children.splice(idx, 1)
+
+    @ve.render()
 
   getElement: (name, sys) ->
     e = null
@@ -1248,9 +1260,24 @@ class EBoxSelectHandler
       @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
       @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
 
+
+  stillOnEBox: (event) =>
+    @mh.updateMouse(event)
+    ixs = @mh.ve.raycaster.intersectObjects(@mh.ve.scene.children, true)
+    result = false
+    for x in ixs
+      if x.object.userData instanceof StaticElementBox
+        result = true
+        break
+    result
+
   handleUp: (event) ->
-    @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
-    @mh.ve.addie.update([@mh.placingObject])
+    if @stillOnEBox(event)
+      @mh.ve.surface.removeElement(@mh.placingObject)
+      false
+    else
+      @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
+      @mh.ve.addie.update([@mh.placingObject])
 
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
@@ -1286,20 +1313,35 @@ class MBoxSelectHandler
     console.log('mbox down')
     @mh.ve.container.onmousemove = (eve) => @handleMove0(eve)
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
+
+  stillOnMBox: (event) =>
+    @mh.updateMouse(event)
+    ixs = @mh.ve.raycaster.intersectObjects(@mh.ve.scene.children, true)
+    result = false
+    for x in ixs
+      if x.object.userData instanceof ModelBox
+        result = true
+        break
+    result
+
   
   handleUp: (event) ->
     console.log('mbox up')
 
-    if @instance?
-      @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
-      @mh.placingObject.sync()
-      @mh.ve.addie.update([@mh.placingObject])
-      @mh.ve.surface.clearSelection()
+    if @stillOnMBox(event)
+      @mh.ve.surface.removeElement(@mh.placingObject)
+      false
+    else
+      if @instance?
+        @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
+        @mh.placingObject.sync()
+        @mh.ve.addie.update([@mh.placingObject])
+        @mh.ve.surface.clearSelection()
 
-    if !@instance?
-      @mh.ve.equationEditor.show(@model)
-      @mh.ve.propsEditor.elements = [@model]
-      @mh.ve.propsEditor.show()
+      if !@instance?
+        @mh.ve.propsEditor.elements = [@model]
+        @mh.ve.propsEditor.show()
+        @mh.ve.equationEditor.show(@model)
 
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmouseup = null
@@ -1349,8 +1391,8 @@ class SurfaceElementSelectHandler
     @mh.ve.propsEditor.elements = [e]
     @mh.ve.propsEditor.show()
 
-    #if e instanceof BaseElements.Model
-    #  @mh.ve.equationEditor.show(e)
+    if e instanceof BaseElements.Phyo
+      @mh.ve.equationEditor.show(e.model)
 
     @mh.placingObject = e
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
@@ -1480,6 +1522,8 @@ class EquationEditor
     console.log("showing equation editor")
     $("#eqtnSrc").val(@model.props.equations)
     $("#eqtnEditor").css("display", "inline")
+    $("#eqtnEditor").css("top",
+        @ve.propsEditor.datgui.domElement.clientHeight + 30)
   
   hide: () ->
     console.log("hiding equation editor")
