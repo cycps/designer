@@ -38,12 +38,14 @@
     </script>
   <!-- ------------------------------------------------------------ -->
     <div id="surface" onmousedown="vz_mousedown(event)"></div>
-    <div id="expControl">
-      <button id="newModel" onclick="newModel()">New Model</button>
+    <div id="expControl" class="buttonBar">
       <button id="compile" onclick="compile()"> Compile </button>
       <button id="run" onclick="run()"> Run </button>
       <button id="simProps" onclick="showSimSettings()"> Sim Settings </button>
       <button id="diagnostics" onclick="showDiagnostics()"> Diagnostics</button>
+    </div>
+    <div id="modelControl" class="buttonBar" >
+      <button id="newModel" onclick="newModel()">New Model</button>
     </div>
     <div id="eqtnEditor">
       <textarea id="eqtnSrc"> </textarea>

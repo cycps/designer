@@ -9,7 +9,7 @@ getParameterByName = (name) =>
 initViz = () =>
   g.ve = new VisualEnvironment(document.getElementById("surface"))
   g.ve.ebox = new StaticElementBox(g.ve, 120, g.ve.height/2 - 65)
-  mh = g.ve.height - 140
+  mh = g.ve.height - 167
   g.ve.mbox = new ModelBox(g.ve, mh, (g.ve.height - 140)/2 - mh/2.0 - 60)
   g.ve.surface = new Surface(g.ve)
   g.ve.datgui = null
