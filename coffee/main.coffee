@@ -654,15 +654,35 @@ class Surface
   moveObject: (o, p) ->
     o.position.x = p.x
     o.position.y = p.y
-    o.linep.x = p.x
-    o.linep.y = p.y
+    if o.linep?
+      o.linep.x = p.x
+      o.linep.y = p.y
 
     if o.userData.glowBubble?
       o.userData.glowBubble.position.x = p.x
       o.userData.glowBubble.position.y = p.y
 
-    @updateLink(ln) for ln in o.lines
+    if o.lines?
+      @updateLink(ln) for ln in o.lines
     true
+
+  moveObjectRelative: (o, p) ->
+    o.position.x += p.x
+    o.position.y += p.y
+    if o.linep?
+      o.linep.x += p.x
+      o.linep.y += p.y
+
+    ###
+    if o.userData.glowBubble?
+      o.userData.glowBubble.position.x += p.x
+      o.userData.glowBubble.position.y += p.y
+    ###
+
+    if o.lines?
+      @updateLink(ln) for ln in o.lines
+    true
+
 
   moveSelection: -> #TODO
   
@@ -772,13 +792,28 @@ class Surface
       gs.userData = obj
       obj.glowBubble = gs
       @selectGroup.add(gs)
+
+      ###
+      if obj.shp?
+        @selectGroup.add(obj.shp.obj3d)
+      if obj.ln?
+        @selectGroup.add(obj.ln.obj3d)
+      ###
+      
       @ve.render()
     true
 
-  clearSelection: ->
-    delete gb.userData.glowBubble for gb in @selectGroup.children
+  clearSelection: (clearProps = true) ->
+
+    #delete gb.userData.glowBubble for gb in @selectGroup.children
+
+    for x in @selectGroup.children
+      if x.userData.glowBubble?
+        delete x.userData.glowBubble
+        #@baseRect.obj3d.children.push(x)
+
     @selectGroup.children = []
-    @clearPropsGUI()
+    @clearPropsGUI() if clearProps
     @ve.render()
 
   clearSelector: ->
@@ -796,66 +831,6 @@ class NameManager
       @names[s]++
 
     s + @names[s]
-
-###
-class ExperimentControl
-  constructor: (@ve) ->
-  
-  expJson: ->
-    console.log "Generating experiment json for " + @ve.surface.elements.length +
-      " elements"
-
-    data = {
-      computers: [],
-      routers: [],
-      switches: [],
-      lan_links: [],
-      wan_links: []
-    }
-
-    linkAdd = (l) ->
-      switch
-        when l.isInternet() then data.wan_links.push(l.props)
-        else data.lan_links.push(l.props)
-
-    add = (e) ->
-      switch
-        when e instanceof BaseElements.Computer then data.computers.push(e.props)
-        when e instanceof BaseElements.Router then data.routers.push(e.props)
-        when e instanceof BaseElements.Switch then data.switches.push(e.props)
-        when e instanceof BaseElements.Link then linkAdd(e)
-        else console.log('unkown element -- ', e)
-
-    add(e) for e in @ve.surface.elements
-
-    console.log(data)
-    console.log(JSON.stringify(data, null, 2))
-
-    data
-
-  save: ->
-    console.log("saving experiment")
-
-    console.log("to the bakery!")
-
-    console.log("getting")
-    $.get "addie/bakery", (data) =>
-      console.log("bakery GET")
-      console.log(data)
-    
-    console.log("posting")
-    $.post "addie/bakery", (data) =>
-      console.log("bakery POST")
-      console.log(data)
-
-  swapIn: ->
-    @expJson()
-
-  swapOut: ->
-
-  update: ->
-
-###
 
 class SimSettings
   constructor: () ->
@@ -1381,20 +1356,33 @@ class SurfaceElementSelectHandler
     @start = new THREE.Vector3(0,0,0)
     @end= new THREE.Vector3(0,0,0)
 
+    @p0 = new THREE.Vector3(0,0,0)
+    @p1 = new THREE.Vector3(0,0,0)
+
   test: (ixs) ->
     ixs.length > 1 and
     ixs[ixs.length - 1].object.userData instanceof Surface and
     ixs[0].object.userData.cyjs?
 
   handleDown: (ixs) ->
+    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
+    bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+    @p0.copy(bix[0].point)
+    @p1.copy(@p0)
+
     @mh.updateMouse(event)
     @start.copy(@mh.pos)
+    #@last.copy(@mh.pos)
     e = ixs[0].object.userData
     console.log "! surface select -- " + e.constructor.name
-    @mh.ve.surface.clearSelection()
+    console.log "current selection"
+    console.log @mh.ve.surface.selectGroup
+    if not ixs[0].object.userData.glowBubble?
+      @mh.ve.surface.clearSelection()
+    if @mh.ve.surface.selectGroup.children.length == 0
+      @mh.ve.propsEditor.elements = [e]
+      @mh.ve.propsEditor.show()
     @mh.ve.surface.selectObj(e)
-    @mh.ve.propsEditor.elements = [e]
-    @mh.ve.propsEditor.show()
 
     if e instanceof BaseElements.Phyo
       @mh.ve.equationEditor.show(e.model)
@@ -1402,6 +1390,18 @@ class SurfaceElementSelectHandler
     @mh.placingObject = e
     @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
     @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
+
+
+  applyGroupMove: () ->
+    for x in @mh.ve.surface.selectGroup.children
+      #p = @mh.pos.sub(@last)
+      p = new THREE.Vector3(@p1.x - @p0.x , @p1.y - @p0.y, @p0.z)
+      if x.userData.shp?
+        @mh.ve.surface.moveObjectRelative(x.userData.shp.obj3d, p)
+      @mh.ve.surface.moveObjectRelative(x, p)
+      #x.position.x += @ve.surface.selectGroup.position.x
+      #x.position.y += @ve.surface.selectGroup.position.y
+
   
   handleUp: (ixs) ->
     @mh.updateMouse(event)
@@ -1411,6 +1411,7 @@ class SurfaceElementSelectHandler
       if @start.distanceTo(@end) > 0
         @mh.ve.addie.update([@mh.placingObject])
 
+    #@applyGroupMove()
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
     @mh.ve.container.onmouseup = null
@@ -1420,12 +1421,17 @@ class SurfaceElementSelectHandler
 
     @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
     bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+    @p1.copy(bix[0].point)
 
     if bix.length > 0
       ox = @mh.placingObject.shp.geom.boundingSphere.radius
-      @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
+      #@mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
+      #@mh.ve.surface.moveObject(@mh.ve.surface.selectGroup, bix[0].point)
+      @applyGroupMove()
       @mh.ve.render()
 
+    #@last.copy(@mh.pos)
+    @p0.copy(@p1)
 
 #TODO, me thinks that react.js orangular.js is meant to deal with precisely 
 #the problem we are tyring to solve with the props editor, in the future we 
@@ -1547,6 +1553,7 @@ class SurfaceSpaceSelectHandler
     ixs[0].object.userData instanceof Surface
 
   handleDown: (ixs) ->
+    @mh.ve.surface.clearSelection()
     console.log "! space select down"
     p = new THREE.Vector3(
       ixs[ixs.length - 1].point.x,
@@ -1570,7 +1577,8 @@ class SurfaceSpaceSelectHandler
     @mh.ve.container.onmousemove = null
     @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
     @mh.ve.container.onmouseup = null
-    @mh.ve.surface.clearSelector()
+    #@mh.ve.surface.clearSelector()
+    #@mh.ve.surface.clearSelection()
     @mh.ve.render()
 
   handleMove: (event) ->
