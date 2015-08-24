@@ -38,7 +38,10 @@
     </script>
   <!-- ------------------------------------------------------------ -->
     <div id="surface" onmousedown="vz_mousedown(event)" 
-                      onkeydown="vz_keydown(event)" tabindex="1">
+                      onkeydown="vz_keydown(event)" tabindex="1"
+                      onwheel="vz_wheel(event)">
+    </div>
+    <div id="controlPanel" onmousedown="vz_mousedown(event)">
     </div>
     <div id="expControl" class="buttonBar">
       <button id="compile" onclick="compile()"> Compile </button>
