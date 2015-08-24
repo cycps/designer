@@ -38,6 +38,9 @@ root.go = ->
 root.vz_mousedown = (event) ->
   g.ve.mouseh.ondown(event)
 
+root.vz_keydown = (event) =>
+  g.ve.keyh.ondown(event)
+
 root.run = (event) =>
   g.ve.addie.run()
 
@@ -864,7 +867,9 @@ class VisualEnvironment
     @renderer.setClearColor(@clear, @alpha)
     @container.appendChild(@renderer.domElement)
     @camera.position.z = 200
+    @camera.zoom = 1
     @mouseh = new MouseHandler(this)
+    @keyh = new KeyHandler(this)
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
     @namemanager = new NameManager()
@@ -873,6 +878,20 @@ class VisualEnvironment
     @propsEditor = new PropsEditor(this)
     @equationEditor = new EquationEditor(this)
     @simSettings = new SimSettings()
+
+  zoomin: () ->
+    console.log("zi")
+    #@camera.position.z += 3
+    #@camera.zoom += 0.01
+    #@camera.updateProjectionMatrix()
+    @render()
+
+  zoomout: () ->
+    console.log("zo")
+    #@camera.position.z -= 3
+    #@camera.zoom -= 0.01
+    #@camera.updateProjectionMatrix()
+    @render()
 
   render: ->
     @renderer.clear()
@@ -1747,5 +1766,17 @@ class MouseHandler
 
     true
 
+class KeyHandler
 
+  constructor: (@ve) ->
+
+  ondown: (event) =>
+    keycode = window.event.keyCode || event.which
+
+    if(keycode == 74)
+      @ve.zoomin()
+    else if(keycode == 75)
+      @ve.zoomout()
+
+    
 
