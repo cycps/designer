@@ -43,8 +43,9 @@ root.go = ->
 #Global event handlers
 root.vz_mousedown = (event, idx) ->
   #g.ve.mouseh.ondown(event)
-  g.ve.activeSView = g.ve.surfaceViews[idx]
-  g.ve.surfaceViews[idx].mouseh.ondown(event)
+  #g.ve.sview = g.ve.surfaceViews[idx]
+  #g.ve.surfaceViews[idx].mouseh.ondown(event)
+  g.ve.sview.mouseh.ondown(event)
 
 root.hsplit_mdown = (event) =>
   g.ve.splitView.hdown(event)
@@ -54,12 +55,12 @@ root.vsplit_mdown = (event) =>
 
 root.vz_keydown = (event) =>
   #g.ve.keyh.ondown(event)
-  g.ve.surfaceViews[0].keyh.ondown(event)
+  g.ve.sview.keyh.ondown(event)
 
 root.vz_wheel = (event, idx) =>
   #g.ve.mouseh.onwheel(event)
-  g.ve.activeSView = g.ve.surfaceViews[idx]
-  g.ve.surfaceViews[idx].mouseh.onwheel(event)
+  #g.ve.sview = g.ve.surfaceViews[idx]
+  g.ve.sview.mouseh.onwheel(event)
 
 root.run = (event) =>
   g.ve.addie.run()
@@ -713,13 +714,13 @@ class Surface
   moveSelection: -> #TODO
   
   glowMaterial: () ->
-    cam = @ve.activeSView.camera
+    #cam = @ve.sview.camera
     new THREE.ShaderMaterial({
       uniforms: {
           "c": { type: "f", value: 1.0 },
           "p": { type: "f", value: 1.4 },
           glowColor: { type: "c", value: new THREE.Color(0x7800ff) },
-          viewVector: { type: "v3", value: cam.position }
+          viewVector: { type: "v3", value: new THREE.Vector3(0, 0, 200) }
       },
       vertexShader: document.getElementById("vertexShader").textContent,
       fragmentShader: document.getElementById("fragmentShader").textContent,
@@ -879,12 +880,7 @@ class VisualEnvironment
     @scene = new THREE.Scene()
     @sscene = new THREE.Scene()
     @surface = new Surface(this)
-    @activeSView = new SurfaceView(this, @sc0)
-    @surfaceViews = [@activeSView,
-      new SurfaceView(this, @sc1),
-      new SurfaceView(this, @sc2),
-      new SurfaceView(this, @sc3)
-    ]
+    #@surfaceViews[1].renderer.setClearColor(0x363636, 1)
     #@width = @container.offsetWidth
     #@height = @container.offsetHeight
     @cwidth = @scontainer.offsetWidth #200
@@ -906,16 +902,15 @@ class VisualEnvironment
       @cwidth / -2, @cwidth / 2,
       @cheight / 2, @cheight / -2,
       1, 1000)
-    #@renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
-    #@renderer.setSize(@width, @height)
-    #@renderer.setSize(@l, @l)
+
+    
+    @sview = new SurfaceView(this, @sc0)
+
     @srenderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
     @srenderer.setSize(@cwidth, @cheight)
     @clear = 0x262626
     @alpha = 1
-    #@renderer.setClearColor(@clear, @alpha)
     @srenderer.setClearColor(@clear, @alpha)
-    #@container.appendChild(@renderer.domElement)
     @scontainer.appendChild(@srenderer.domElement)
     #@camera.position.z = 200
     #@camera.zoom = 1
@@ -940,7 +935,8 @@ class VisualEnvironment
     console.log("vsplit")
 
   render: ->
-    sv.doRender() for sv in @surfaceViews
+    #sv.doRender() for sv in @surfaceViews
+    @sview.doRender()
     #@renderer.clear()
     #@renderer.clearDepth()
     #@renderer.render(@scene, @camera)
@@ -978,10 +974,11 @@ class SplitView
     x = event.clientX+"px"
     r = ($("#metasurface").width() - event.clientX)+"px"
     $("#vsplitter").css("left", x)
-    $("#surface0").css("right", r)
-    $("#surface1").css("left", (event.clientX+5)+"px")
-    $("#surface1").css("width", "auto")
-    @ve.surfaceViews[1].reInitCamera()
+    #$("#surface0").css("right", r)
+    #$("#surface1").css("left", (event.clientX+5)+"px")
+    #$("#surface1").css("width", "auto")
+    #@ve.surfaceViews[1].reInitCamera()
+    #@ve.surfaceViews[1].doRender()
 
 class SurfaceView
   constructor: (@ve, @container) ->
@@ -989,62 +986,112 @@ class SurfaceView
     @surface = @ve.surface
     @cwidth = @container.offsetWidth
     @cheight = @container.offsetHeight
+
+    @l = Math.max(window.innerWidth, window.innerHeight)
     @l = Math.max(@cwidth, @cheight)
-    @camera = new THREE.OrthographicCamera(
-      @l/-2, @l/2,
-      @l/2, @l/-2,
-      1, 1000)
-    @renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
-    @renderer.setSize(@l, @l)
     @clear = 0x262626
     @alpha = 1
+
+    @renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
+    @renderer.setSize(@cwidth, @cheight)
     @renderer.setClearColor(@clear, @alpha)
-    @container.appendChild(@renderer.domElement)
-    @camera.position.z = 200
-    @camera.zoom = 1
+    #@renderer.setPixelRatio(window.devicePixelRatio)
+
     @mouseh = new MouseHandler(this)
     @keyh = new KeyHandler(this.ve)
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
+    @container.appendChild(@renderer.domElement)
 
+    @panes = [
+      {
+        background: 0x262626,
+        viewport: {
+          left: 0,
+          bottom: 0,
+          width: @cwidth/2,
+          height: @cheight
+        },
+        camera: new THREE.OrthographicCamera(
+          (@cwidth/2)/-2, (@cwidth/2)/2,
+          @cheight/2, @cheight/-2,
+          1, 1000)
+      }
+      {
+        background: 0x464646,
+        viewport: {left: @cwidth/2, bottom: 0, width: @cwidth/2, height: @cheight},
+        camera: new THREE.OrthographicCamera(
+          (@cwidth/2)/-2, (@cwidth/2)/2,
+          @cheight/2, @cheight/-2,
+          1, 1000)
+      }
+    ]
+
+    for p in @panes
+      p.camera.position.z = 200
+
+  ###
   reInitCamera: () ->
     @cwidth = @container.offsetWidth
     @cheight = @container.offsetHeight
-    @l = Math.max(@cwidth, @cheight)
+    #@l = Math.max(@cwidth, @cheight)
     @renderer.setSize(@l, @l)
+    @renderer.setClearColor(@clear, @alpha)
     @camera.left = @l/-2
     @camera.right = @l/2
     @camera.top = @l/2
     @camera.bottom = @l/-2
     @camera.updateProjectionMatrix()
     @doRender()
+  ###
 
   doRender: () ->
-    @renderer.clear()
-    @renderer.clearDepth()
-    @renderer.render(@scene, @camera)
+    for p in @panes
+      vp = p.viewport
+      @renderer.setViewport(vp.left, vp.bottom, vp.width, vp.height)
+      @renderer.setScissor(vp.left, vp.bottom, vp.width, vp.height)
+      @renderer.enableScissorTest(true)
+      @renderer.setClearColor(p.background)
+      p.camera.updateProjectionMatrix()
+      @renderer.clear()
+      @renderer.clearDepth()
+      @renderer.render(@scene, p.camera)
 
   render: () ->
     @ve.render()
   
+  getPane: (c) =>
+    result = {}
+    for p in @panes
+      if c.x > p.viewport.left and
+         c.x < p.viewport.left + p.viewport.width and
+         c.y > p.viewport.bottom and
+         c.y < p.viewport.bottom + p.viewport.height
+
+          result = p
+          break
+
+    p
+         
+  
   zoomin: (x = 3, p = new THREE.Vector2(0,0)) ->
-    w = Math.abs(@camera.right - @camera.left)
-    h = Math.abs(@camera.top - @camera.bottom)
-    @camera.left += x * (p.x/w)
-    @camera.right -= x * (1 - p.x/w)
-    @camera.top -= x * (p.y/h)
-    @camera.bottom += x * (1 - p.y/h)
-    @camera.updateProjectionMatrix()
+    w = Math.abs(@mouseh.icam.right - @mouseh.icam.left)
+    h = Math.abs(@mouseh.icam.top - @mouseh.icam.bottom)
+    @mouseh.icam.left += x * (p.x/w)
+    @mouseh.icam.right -= x * (1 - p.x/w)
+    @mouseh.icam.top -= x * (p.y/h)
+    @mouseh.icam.bottom += x * (1 - p.y/h)
+    @mouseh.icam.updateProjectionMatrix()
     @render()
 
   pan: (dx, dy) =>
     console.log("dx - " + dx)
     console.log("dy - " + dy)
-    @camera.left += dx
-    @camera.right += dx
-    @camera.top += dy
-    @camera.bottom += dy
-    @camera.updateProjectionMatrix()
+    @mouseh.icam.left += dx
+    @mouseh.icam.right += dx
+    @mouseh.icam.top += dy
+    @mouseh.icam.bottom += dy
+    @mouseh.icam.updateProjectionMatrix()
     @render()
 
 
@@ -1532,7 +1579,7 @@ class SurfaceElementSelectHandler
     ixs[0].object.userData.cyjs?
 
   handleDown: (ixs) ->
-    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.sv.camera)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
     bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
     @p0.copy(bix[0].point)
     @p1.copy(@p0)
@@ -1594,7 +1641,7 @@ class SurfaceElementSelectHandler
   handleMove: (event) ->
     @mh.updateMouse(event)
 
-    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.sv.camera)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
     bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
     @p1.copy(bix[0].point)
 
@@ -1901,6 +1948,7 @@ class MouseHandler
     @surfaceSSH = new SurfaceSpaceSelectHandler(this)
     @linkingH = new LinkingHandler(this)
     @panHandler = new PanHandler(this)
+    @icam = null
 
   ondown: (event) -> @baseDown(event)
 
@@ -1909,10 +1957,11 @@ class MouseHandler
 
   
   updateMouse: (event) ->
+    @icam = @sv.getPane(new THREE.Vector2(event.layerX, event.layerY)).camera
     #@pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
     #@pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
-    @pos.x =  (event.layerX / @sv.l ) * 2 - 1
-    @pos.y = -(event.layerY / @sv.l ) * 2 + 1
+    @pos.x =  (event.layerX / (@sv.cwidth/2) ) * 2 - 1
+    @pos.y = -(event.layerY / @sv.cheight ) * 2 + 1
     
     #@spos.x =  (event.layerX / @ve.scontainer.offsetWidth ) * 2 - 1
     #@spos.y = -(event.layerY / @ve.scontainer.offsetHeight) * 2 + 1
@@ -1920,7 +1969,7 @@ class MouseHandler
 
   baseRectIx: (event) ->
     @updateMouse(event)
-    @sv.raycaster.setFromCamera(@pos, @sv.camera)
+    @sv.raycaster.setFromCamera(@pos, @sv.panes[0].camera)
     @sv.raycaster.intersectObject(@sv.ve.surface.baseRect.obj3d)
 
   placingObject: null
@@ -1968,7 +2017,7 @@ class MouseHandler
     ###
 
     if event.which == 1
-      @sv.raycaster.setFromCamera(@pos, @sv.camera)
+      @sv.raycaster.setFromCamera(@pos, @sv.panes[0].camera)
       ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
 
       if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
