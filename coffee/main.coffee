@@ -8,13 +8,16 @@ getParameterByName = (name) =>
 
 initViz = () =>
   g.ve = new VisualEnvironment(
-    document.getElementById("surface"),
+    document.getElementById("surface0"),
+    document.getElementById("surface1"),
+    document.getElementById("surface2"),
+    document.getElementById("surface3"),
     document.getElementById("controlPanel")
   )
-  g.ve.ebox = new StaticElementBox(g.ve, 120, g.ve.height/2 - 65)
-  mh = g.ve.height - 167
-  g.ve.mbox = new ModelBox(g.ve, mh, (g.ve.height - 140)/2 - mh/2.0 - 60)
-  g.ve.surface = new Surface(g.ve)
+  g.ve.ebox = new StaticElementBox(g.ve, 120, g.ve.cheight/2 - 65)
+  mh = g.ve.cheight - 167
+  g.ve.mbox = new ModelBox(g.ve, mh, (g.ve.cheight - 140)/2 - mh/2.0 - 60)
+  #g.ve.surface = new Surface(g.ve)
   g.ve.datgui = null
   g.ve.render(g.ve)
 
@@ -39,13 +42,22 @@ root.go = ->
 
 #Global event handlers
 root.vz_mousedown = (event) ->
-  g.ve.mouseh.ondown(event)
+  #g.ve.mouseh.ondown(event)
+  g.ve.surfaceViews[0].mouseh.ondown(event)
+
+root.hsplit_mdown = (event) =>
+  g.ve.splitView.hdown(event)
+
+root.vsplit_mdown = (event) =>
+  g.ve.splitView.vdown(event)
 
 root.vz_keydown = (event) =>
-  g.ve.keyh.ondown(event)
+  #g.ve.keyh.ondown(event)
+  g.ve.surfaceViews[0].keyh.ondown(event)
 
 root.vz_wheel = (event) =>
-  g.ve.mouseh.onwheel(event)
+  #g.ve.mouseh.onwheel(event)
+  g.ve.surfaceViews[0].mouseh.onwheel(event)
 
 root.run = (event) =>
   g.ve.addie.run()
@@ -524,7 +536,7 @@ class ElementBox
   constructor: (@ve, @height, @y) ->
     #@height = @ve.height - 10
     @width = 75
-    @x = -@ve.swidth/2  + @width / 2 + 5
+    @x = -@ve.cwidth/2  + @width / 2 + 5
     #@x = 0
     #@y =  0
     @z = 5
@@ -579,8 +591,10 @@ class ModelBox extends ElementBox
 class Surface
   #Constructs a Surface object given a @ve visual environment
   constructor: (@ve) ->
-    @height = @ve.height
-    @width = @ve.width
+    #@height = @ve.l
+    #@width = @ve.l
+    @width = 5000
+    @height = 5000
     @baseRect = new Shapes.Rectangle(0x262626, 0, 0, 0, @width, @height)
     @baseRect.obj3d.userData = this
     @ve.scene.add(@baseRect.obj3d)
@@ -697,7 +711,7 @@ class Surface
   moveSelection: -> #TODO
   
   glowMaterial: () ->
-    cam = @.ve.camera
+    cam = @.ve.activeSView.camera
     new THREE.ShaderMaterial({
       uniforms: {
           "c": { type: "f", value: 1.0 },
@@ -859,76 +873,75 @@ class VisualEnvironment
   #be a reference to a <div> dom element. The Threejs canvas the visual 
   #environment renders onto will be appended as a child of the supplied 
   #container
-  constructor: (@container, @scontainer) ->
+  constructor: (@sc0, @sc1, @sc2, @sc3, @scontainer) ->
     @scene = new THREE.Scene()
     @sscene = new THREE.Scene()
-    @width = @container.offsetWidth
-    @height = @container.offsetHeight
-    @swidth = @scontainer.offsetWidth #200
-    @sheight = @scontainer.offsetHeight
+    @surface = new Surface(this)
+    @activeSView = new SurfaceView(this, @sc0)
+    @surfaceViews = [@activeSView,
+      @activeSView = new SurfaceView(this, @sc1),
+      @activeSView = new SurfaceView(this, @sc2),
+      @activeSView = new SurfaceView(this, @sc3)
+    ]
+    #@width = @container.offsetWidth
+    #@height = @container.offsetHeight
+    @cwidth = @scontainer.offsetWidth #200
+    @cheight = @scontainer.offsetHeight
+    
+    #@l = Math.max(@width, @height)
+    #@l = 2000
+    ###
     @camera = new THREE.OrthographicCamera(
       @width / -2, @width / 2,
       @height / 2, @height / -2,
       1, 1000)
+    ###
+    #@camera = new THREE.OrthographicCamera(
+    #  @l/-2, @l/2,
+    #  @l/2, @l/-2,
+    #  1, 1000)
     @scamera = new THREE.OrthographicCamera(
-      @swidth / -2, @swidth / 2,
-      @sheight / 2, @sheight / -2,
+      @cwidth / -2, @cwidth / 2,
+      @cheight / 2, @cheight / -2,
       1, 1000)
-    @renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
-    @renderer.setSize(@width, @height)
+    #@renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
+    #@renderer.setSize(@width, @height)
+    #@renderer.setSize(@l, @l)
     @srenderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
-    @srenderer.setSize(@swidth, @sheight)
+    @srenderer.setSize(@cwidth, @cheight)
     @clear = 0x262626
     @alpha = 1
-    @renderer.setClearColor(@clear, @alpha)
+    #@renderer.setClearColor(@clear, @alpha)
     @srenderer.setClearColor(@clear, @alpha)
-    @container.appendChild(@renderer.domElement)
+    #@container.appendChild(@renderer.domElement)
     @scontainer.appendChild(@srenderer.domElement)
-    @camera.position.z = 200
-    @camera.zoom = 1
+    #@camera.position.z = 200
+    #@camera.zoom = 1
     @scamera.position.z = 200
     @scamera.zoom = 1
-    @mouseh = new MouseHandler(this)
+    #@mouseh = new MouseHandler(this)
     @keyh = new KeyHandler(this)
-    @raycaster = new THREE.Raycaster()
-    @raycaster.linePrecision = 10
+    #@raycaster = new THREE.Raycaster()
+    #@raycaster.linePrecision = 10
     @namemanager = new NameManager()
     #@xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
     @propsEditor = new PropsEditor(this)
     @equationEditor = new EquationEditor(this)
     @simSettings = new SimSettings()
+    @splitView = new SplitView(this)
 
-  zoomin: (x = 3) ->
-    console.log("zi")
-    @camera.left += x
-    @camera.right -= x
-    @camera.top -= x
-    @camera.bottom += x
-    @camera.updateProjectionMatrix()
-    #@surface.baseRect.obj3d.position.z += 3
-    #@camera.position.z += 3
-    #@camera.zoom += 0.01
-    #@camera.updateProjectionMatrix()
-    @render()
-
-  zoomout: (x = 3) ->
-    console.log("zo")
-    @camera.left -= x
-    @camera.right += x
-    @camera.top += x
-    @camera.bottom -= x
-    @camera.updateProjectionMatrix()
-    #@surface.baseRect.obj3d.position.z -= 3
-    #@camera.position.z -= 3
-    #@camera.zoom -= 0.01
-    #@camera.updateProjectionMatrix()
-    @render()
+  hsplit: () =>
+    console.log("hsplit")
+  
+  vsplit: () =>
+    console.log("vsplit")
 
   render: ->
-    @renderer.clear()
-    @renderer.clearDepth()
-    @renderer.render(@scene, @camera)
+    sv.render() for sv in @surfaceViews
+    #@renderer.clear()
+    #@renderer.clearDepth()
+    #@renderer.render(@scene, @camera)
     
     @srenderer.clear()
     @srenderer.clearDepth()
@@ -941,6 +954,71 @@ class VisualEnvironment
 
   showDiagnostics: () =>
     console.log("Showing Diagnostics")
+
+class SplitView
+  constructor: (@ve) ->
+    
+
+  hdown: (event) =>
+  hup: (event) =>
+  hmove: (event) =>
+
+  vdown: (event) =>
+    $("#metasurface").mouseup(@vup)
+    $("#metasurface").mousemove(@vmove)
+
+  vup: (event) =>
+    console.log("vup")
+    $("#metasurface").off('mousemove')
+
+  vmove: (event) =>
+    x = event.clientX+"px"
+    r = ($("#metasurface").width() - event.clientX)+"px"
+    console.log(r)
+    $("#vsplitter").css("left", x)
+    $("#surface0").css("right", r)
+    $("#surface1").css("left", x)
+    $("#surface1").css("width", "auto")
+
+class SurfaceView
+  constructor: (@ve, @container) ->
+    @scene = @ve.scene
+    @surface = @ve.surface
+    @cwidth = @container.offsetWidth
+    @cheight = @container.offsetHeight
+    @l = Math.max(@cwidth, @cheight)
+    @camera = new THREE.OrthographicCamera(
+      @l/-2, @l/2,
+      @l/2, @l/-2,
+      1, 1000)
+    @renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
+    @renderer.setSize(@l, @l)
+    @clear = 0x262626
+    @alpha = 1
+    @renderer.setClearColor(@clear, @alpha)
+    @container.appendChild(@renderer.domElement)
+    @camera.position.z = 200
+    @camera.zoom = 1
+    @mouseh = new MouseHandler(this)
+    @keyh = new KeyHandler(this.ve)
+    @raycaster = new THREE.Raycaster()
+    @raycaster.linePrecision = 10
+
+  render: () ->
+    @renderer.clear()
+    @renderer.clearDepth()
+    @renderer.render(@ve.scene, @camera)
+  
+  zoomin: (x = 3, p = new THREE.Vector2(0,0)) ->
+    console.log("zi")
+    w = Math.abs(@camera.right - @camera.left)
+    h = Math.abs(@camera.top - @camera.bottom)
+    @camera.left += x * (p.x/w)
+    @camera.right -= x * (1 - p.x/w)
+    @camera.top -= x * (p.y/h)
+    @camera.bottom += x * (1 - p.y/h)
+    @camera.updateProjectionMatrix()
+    @render()
 
 
 #This is the client side Addie, it talks to the Addie at cypress.deterlab.net
@@ -1320,7 +1398,7 @@ class EBoxSelectHandler
   handleMove: (event) ->
     @mh.updateMouse(event)
 
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
+    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
     bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
 
     if bix.length > 0
@@ -1405,7 +1483,7 @@ class MBoxSelectHandler
     @mh.ve.equationEditor.hide()
     @mh.ve.surface.clearSelection()
 
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
+    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
     bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
 
     if bix.length > 0
@@ -1427,8 +1505,8 @@ class SurfaceElementSelectHandler
     ixs[0].object.userData.cyjs?
 
   handleDown: (ixs) ->
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
-    bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.sv.camera)
+    bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
     @p0.copy(bix[0].point)
     @p1.copy(@p0)
 
@@ -1438,38 +1516,38 @@ class SurfaceElementSelectHandler
     e = ixs[0].object.userData
     console.log "! surface select -- " + e.constructor.name
     console.log "current selection"
-    console.log @mh.ve.surface.selectGroup
+    console.log @mh.sv.surface.selectGroup
     if not ixs[0].object.userData.glowBubble?
-      @mh.ve.surface.clearSelection()
-    if @mh.ve.surface.selectGroup.children.length == 0
-      @mh.ve.propsEditor.elements = [e]
-      @mh.ve.propsEditor.show()
-    @mh.ve.surface.selectObj(e)
+      @mh.sv.surface.clearSelection()
+    if @mh.sv.surface.selectGroup.children.length == 0
+      @mh.sv.ve.propsEditor.elements = [e]
+      @mh.sv.ve.propsEditor.show()
+    @mh.sv.surface.selectObj(e)
 
     if e instanceof BaseElements.Phyo
-      @mh.ve.equationEditor.show(e.model)
+      @mh.sv.ve.equationEditor.show(e.model)
 
     @mh.placingObject = e
-    @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
-    @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
+    @mh.sv.container.onmouseup = (eve) => @handleUp(eve)
+    @mh.sv.container.onmousemove = (eve) => @handleMove(eve)
 
 
   applyGroupMove: () ->
-    for x in @mh.ve.surface.selectGroup.children
+    for x in @mh.sv.surface.selectGroup.children
       #p = @mh.pos.sub(@last)
       p = new THREE.Vector3(@p1.x - @p0.x , @p1.y - @p0.y, @p0.z)
       if x.userData.shp?
-        @mh.ve.surface.moveObjectRelative(x.userData.shp.obj3d, p)
-      @mh.ve.surface.moveObjectRelative(x, p)
+        @mh.sv.surface.moveObjectRelative(x.userData.shp.obj3d, p)
+      @mh.sv.surface.moveObjectRelative(x, p)
       #x.position.x += @ve.surface.selectGroup.position.x
       #x.position.y += @ve.surface.selectGroup.position.y
 
   updateGroupMove: () ->
     updates = []
-    for x in @mh.ve.surface.selectGroup.children
+    for x in @mh.sv.surface.selectGroup.children
       x.userData.props.position = x.position
       updates.push(x.userData)
-    @mh.ve.addie.update(updates)
+    @mh.sv.ve.addie.update(updates)
       
   
   handleUp: (ixs) ->
@@ -1482,15 +1560,15 @@ class SurfaceElementSelectHandler
         @updateGroupMove()
 
     #@applyGroupMove()
-    @mh.ve.container.onmousemove = null
-    @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
-    @mh.ve.container.onmouseup = null
+    @mh.sv.container.onmousemove = null
+    @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
+    @mh.sv.container.onmouseup = null
   
   handleMove: (event) ->
     @mh.updateMouse(event)
 
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
-    bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.sv.camera)
+    bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
     @p1.copy(bix[0].point)
 
     if bix.length > 0
@@ -1498,7 +1576,7 @@ class SurfaceElementSelectHandler
       #@mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       #@mh.ve.surface.moveObject(@mh.ve.surface.selectGroup, bix[0].point)
       @applyGroupMove()
-      @mh.ve.render()
+      @mh.sv.render()
 
     #@last.copy(@mh.pos)
     @p0.copy(@p1)
@@ -1602,9 +1680,10 @@ class EquationEditor
     @model = m
     console.log("showing equation editor")
     $("#eqtnSrc").val(@model.props.equations)
-    $("#eqtnEditor").css("display", "inline")
-    $("#eqtnEditor").css("top",
-        @ve.propsEditor.datgui.domElement.clientHeight + 30)
+    if @ve.propsEditor.datgui?
+      $("#eqtnEditor").css("display", "inline")
+      $("#eqtnEditor").css("top",
+          @ve.propsEditor.datgui.domElement.clientHeight + 30)
   
   hide: () ->
     console.log("hiding equation editor")
@@ -1623,7 +1702,7 @@ class SurfaceSpaceSelectHandler
     ixs[0].object.userData instanceof Surface
 
   handleDown: (ixs) ->
-    @mh.ve.surface.clearSelection()
+    @mh.sv.surface.clearSelection()
     console.log "! space select down"
     p = new THREE.Vector3(
       ixs[ixs.length - 1].point.x,
@@ -1631,25 +1710,25 @@ class SurfaceSpaceSelectHandler
       75
     )
     @selCube.init(p)
-    @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
-    @mh.ve.surface.selectorGroup.add(@selCube.obj3d)
-    @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
-    @mh.ve.surface.clearSelection()
+    @mh.sv.container.onmouseup = (eve) => @handleUp(eve)
+    @mh.sv.surface.selectorGroup.add(@selCube.obj3d)
+    @mh.sv.container.onmousemove = (eve) => @handleMove(eve)
+    @mh.sv.surface.clearSelection()
 
   handleUp: (event) ->
     console.log "! space select up"
-    sel = @mh.ve.surface.getSelection(@selCube.obj3d.geometry.boundingBox)
-    @mh.ve.surface.selectObj(o) for o in sel
-    @mh.ve.propsEditor.elements = sel
+    sel = @mh.sv.surface.getSelection(@selCube.obj3d.geometry.boundingBox)
+    @mh.sv.surface.selectObj(o) for o in sel
+    @mh.sv.ve.propsEditor.elements = sel
     console.log('common props')
-    @mh.ve.propsEditor.show()
+    @mh.sv.ve.propsEditor.show()
     @selCube.reset()
-    @mh.ve.container.onmousemove = null
-    @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
-    @mh.ve.container.onmouseup = null
+    @mh.sv.container.onmousemove = null
+    @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
+    @mh.sv.container.onmouseup = null
     #@mh.ve.surface.clearSelector()
     #@mh.ve.surface.clearSelection()
-    @mh.ve.render()
+    @mh.sv.render()
 
   handleMove: (event) ->
     bix = @mh.baseRectIx(event)
@@ -1660,14 +1739,14 @@ class SurfaceSpaceSelectHandler
         75
       )
       @selCube.update(p)
-      @mh.ve.render()
+      @mh.sv.render()
     
 
 class LinkingHandler
   constructor: (@mh) ->
 
   handleDown0: (event) ->
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
+    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
     ixs = @mh.ve.raycaster.intersectObjects(
               @mh.ve.surface.baseRect.obj3d.children)
 
@@ -1706,7 +1785,7 @@ class LinkingHandler
       console.log "! link0 miss"
 
   handleDown1: (event) ->
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.camera)
+    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
     ixs = @mh.ve.raycaster.intersectObjects(
                 @mh.ve.surface.baseRect.obj3d.children)
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
@@ -1747,7 +1826,7 @@ class LinkingHandler
   handleMove1: (event) ->
     #TODO replace me with baseRectIx when that is ready
     @.mh.updateMouse(event)
-    @.mh.ve.raycaster.setFromCamera(@.mh.pos, @.mh.ve.camera)
+    @.mh.ve.raycaster.setFromCamera(@.mh.pos, @.mh.ve.sview.camera)
     bix = @.mh.ve.raycaster.intersectObject(@.mh.ve.surface.baseRect.obj3d)
     if bix.length > 0
       #console.log "! lm1"
@@ -1760,7 +1839,7 @@ class LinkingHandler
 #Mouse handler encapsulates the logic of dealing with mouse events
 class MouseHandler
 
-  constructor: (@ve) ->
+  constructor: (@sv) ->
     @pos = new THREE.Vector3(0, 0, 1)
     @spos = new THREE.Vector3(0, 0, 1)
     @eboxSH = new EBoxSelectHandler(this)
@@ -1772,28 +1851,30 @@ class MouseHandler
   ondown: (event) -> @baseDown(event)
 
   onwheel: (event) =>
-    @ve.zoomin(-event.deltaY / 5)
+    @sv.zoomin(-event.deltaY / 5, new THREE.Vector2(event.layerX, event.layerY))
 
   
   updateMouse: (event) ->
-    @pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
-    @pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
+    #@pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
+    #@pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
+    @pos.x =  (event.layerX / @sv.l ) * 2 - 1
+    @pos.y = -(event.layerY / @sv.l ) * 2 + 1
     
-    @spos.x =  (event.layerX / @ve.scontainer.offsetWidth ) * 2 - 1
-    @spos.y = -(event.layerY / @ve.scontainer.offsetHeight) * 2 + 1
+    #@spos.x =  (event.layerX / @ve.scontainer.offsetWidth ) * 2 - 1
+    #@spos.y = -(event.layerY / @ve.scontainer.offsetHeight) * 2 + 1
     #console.log(@pos.x + "," + @pos.y)
 
   baseRectIx: (event) ->
     @updateMouse(event)
-    @ve.raycaster.setFromCamera(@pos, @ve.camera)
-    @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
+    @sv.raycaster.setFromCamera(@pos, @sv.camera)
+    @sv.raycaster.intersectObject(@sv.ve.surface.baseRect.obj3d)
 
   placingObject: null
   placingLink: null
   
   makePlacingObject: (obj) ->
-    @ve.raycaster.setFromCamera(@pos, @ve.camera)
-    bix = @ve.raycaster.intersectObject(@ve.surface.baseRect.obj3d)
+    @sv.raycaster.setFromCamera(@pos, @sv.camera)
+    bix = @ve.raycaster.intersectObject(@sv.ve.surface.baseRect.obj3d)
     x = y = 0
     if bix.length > 0
       ix = bix[bix.length - 1]
@@ -1808,26 +1889,34 @@ class MouseHandler
     #the order actually matters here, need to hide the equation editor first
     #so the equations get saved to the underlying object before the props
     #editor sends them to addie
-    @ve.equationEditor.hide()
-    @ve.propsEditor.hide()
+    @sv.ve.equationEditor.hide()
+    @sv.ve.propsEditor.hide()
 
     #get the list of objects the mouse click intersected
     #@ve.scene.updateMatrixWorld()
     @updateMouse(event)
+    console.log(@pos)
 
     #delegate the handling of the event to one of the handlers
     #check the model boxes first
 
+    ###
     @ve.raycaster.setFromCamera(@spos, @ve.scamera)
     sixs = @ve.raycaster.intersectObjects(@ve.sscene.children, true)
     if      @eboxSH.test(sixs) then @eboxSH.handleDown(sixs)
     else if @mboxSH.test(sixs) then @mboxSH.handleDown(sixs)
     else
-      @ve.raycaster.setFromCamera(@pos, @ve.camera)
+      @ve.raycaster.setFromCamera(@pos, @ve.sview.camera)
       ixs = @ve.raycaster.intersectObjects(@ve.scene.children, true)
 
       if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
       else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
+    ###
+    @sv.raycaster.setFromCamera(@pos, @sv.camera)
+    ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
+
+    if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
+    else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
 
     true
 
@@ -1842,6 +1931,10 @@ class KeyHandler
       @ve.zoomin()
     else if(keycode == 75)
       @ve.zoomout()
+    else if(keycode == 72)
+      @ve.hsplit()
+    else if(keycode == 86)
+      @ve.vsplit()
 
     
 

@@ -37,9 +37,29 @@
       }
     </script>
   <!-- ------------------------------------------------------------ -->
-    <div id="surface" onmousedown="vz_mousedown(event)" 
-                      onkeydown="vz_keydown(event)" tabindex="1"
-                      onwheel="vz_wheel(event)">
+    <div id="metasurface">
+      <div id="surface0" class="surface" 
+                        onmousedown="vz_mousedown(event)" 
+                        onkeydown="vz_keydown(event)" tabindex="1"
+                        onwheel="vz_wheel(event)">
+      </div>
+      <div id="surface1" class="surface"
+                        onmousedown="vz_mousedown(event)" 
+                        onkeydown="vz_keydown(event)" tabindex="1"
+                        onwheel="vz_wheel(event)">
+      </div>
+      <div id="surface2" class="surface"
+                        onmousedown="vz_mousedown(event)" 
+                        onkeydown="vz_keydown(event)" tabindex="1"
+                        onwheel="vz_wheel(event)">
+      </div>
+      <div id="surface3" class="surface"
+                        onmousedown="vz_mousedown(event)" 
+                        onkeydown="vz_keydown(event)" tabindex="1"
+                        onwheel="vz_wheel(event)">
+      </div>
+      <div id="vsplitter" onmousedown="vsplit_mdown(event)"></div>
+      <div id="hsplitter" onmousedown="hsplit_mdown(event)"></div>
     </div>
     <div id="controlPanel" onmousedown="vz_mousedown(event)">
     </div>

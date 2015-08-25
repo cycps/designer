@@ -6,15 +6,72 @@ body {
   color: $light-color;
   background-color: $dark-color;
   overflow: hidden;
+  margin: 0px;
 }
 
-
-#surface {
+.surface{
+  overflow: hidden;
   position: absolute;
-  left: 0px;
+}
+
+#surface0 {
+  //border-right: 5px solid #cacaca;
+  //border-bottom: 5px solid #cacaca;
+  left:  0px;
   right: 0px;
+  bottom:0px;
   top: 0px;
+}
+
+#surface1 {
+  //border-right: 5px solid #cacaca;
+  //border-bottom: 5px solid #cacaca;
+  left:  auto;
+  right: 0px;
   bottom: 0px;
+  top: 0px;
+  width: 0px;
+}
+
+#vsplitter {
+  width: 5px;
+  background-color: #cacaca;
+  cursor: ew-resize;
+  position: absolute;
+  right: 0px;
+  left: auto;
+  top: 0px;
+  bottom:0px;
+}
+#hsplitter {
+  height: 5px;
+  background-color: #cacaca;
+  cursor: ns-resize;
+  position: absolute;
+  right: 0px;
+  left: 0px;
+  top: auto;
+  bottom:0px;
+}
+
+#surface2 {
+  //border-right: 5px solid #cacaca;
+  //border-bottom: 5px solid #cacaca;
+  left:  auto;
+  right: 0px;
+  bottom:0px;
+  top: auto;
+  width: 0px;
+  height: 0px;
+}
+
+#surface3 {
+  //border-bottom: 5px solid #cacaca;
+  left:  0px;
+  right: auto;
+  bottom:0px;
+  top: auto;
+  width: 0px;
 }
 
 #controlPanel {
