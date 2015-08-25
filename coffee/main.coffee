@@ -986,6 +986,7 @@ class SurfaceView
     @surface = @ve.surface
     @cwidth = @container.offsetWidth
     @cheight = @container.offsetHeight
+    @zoomFactor = 1
 
     @l = Math.max(window.innerWidth, window.innerHeight)
     @l = Math.max(@cwidth, @cheight)
@@ -1077,6 +1078,7 @@ class SurfaceView
   zoomin: (x = 3, p = new THREE.Vector2(0,0)) ->
     w = Math.abs(@mouseh.icam.right - @mouseh.icam.left)
     h = Math.abs(@mouseh.icam.top - @mouseh.icam.bottom)
+    @zoomFactor += x/w
     @mouseh.icam.left += x * (p.x/w)
     @mouseh.icam.right -= x * (1 - p.x/w)
     @mouseh.icam.top -= x * (p.y/h)
@@ -1427,7 +1429,7 @@ class EBoxSelectHandler
     #ixs[0].object.userData.cyjs?
 
   handleDown: (ixs) ->
-    @mh.ve.surface.clearSelection()
+    @mh.sv.surface.clearSelection()
     if ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! ebox select -- " + e.constructor.name
@@ -1436,20 +1438,20 @@ class EBoxSelectHandler
       #     this way many things may be linked without going back to the icon
       if e instanceof Link
         console.log "! linking objects"
-        @mh.ve.container.onmousemove = (eve) => @mh.linkingH.handleMove0(eve)
-        @mh.ve.container.onmousedown = (eve) => @mh.linkingH.handleDown0(eve)
+        @mh.sv.container.onmousemove = (eve) => @mh.linkingH.handleMove0(eve)
+        @mh.sv.container.onmousedown = (eve) => @mh.linkingH.handleDown0(eve)
       else
         console.log "! placing objects"
         @mh.makePlacingObject(e)
-        @mh.ve.container.onmousemove = (eve) => @handleMove(eve)
-        @mh.ve.scontainer.onmouseup = (eve) => @handleUp(eve)
-        @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
+        @mh.sv.container.onmousemove = (eve) => @handleMove(eve)
+        @mh.sv.ve.scontainer.onmouseup = (eve) => @handleUp(eve)
+        @mh.sv.container.onmouseup = (eve) => @handleUp(eve)
 
 
   stillOnEBox: (event) =>
     @mh.updateMouse(event)
-    @mh.ve.raycaster.setFromCamera(@mh.spos, @mh.ve.scamera)
-    ixs = @mh.ve.raycaster.intersectObjects(@mh.ve.sscene.children, true)
+    @mh.sv.raycaster.setFromCamera(@mh.spos, @mh.sv.ve.scamera)
+    ixs = @mh.sv.raycaster.intersectObjects(@mh.sv.ve.sscene.children, true)
     result = false
     for x in ixs
       if x.object.userData instanceof StaticElementBox
@@ -1459,26 +1461,26 @@ class EBoxSelectHandler
 
   handleUp: (event) ->
     if @stillOnEBox(event)
-      @mh.ve.surface.removeElement(@mh.placingObject)
+      @mh.sv.surface.removeElement(@mh.placingObject)
       false
     else
       @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
-      @mh.ve.addie.update([@mh.placingObject])
+      @mh.sv.ve.addie.update([@mh.placingObject])
 
-    @mh.ve.container.onmousemove = null
-    @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
-    @mh.ve.container.onmouseup = null
+    @mh.sv.container.onmousemove = null
+    @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
+    @mh.sv.container.onmouseup = null
 
   handleMove: (event) ->
     @mh.updateMouse(event)
 
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
-    bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
+    bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
 
     if bix.length > 0
       ox = @mh.placingObject.shp.geom.boundingSphere.radius
-      @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
-      @mh.ve.render()
+      @mh.sv.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
+      @mh.sv.render()
 
 class MBoxSelectHandler
   constructor: (@mh) ->
@@ -1492,20 +1494,20 @@ class MBoxSelectHandler
     #ixs[0].object.userData.cyjs?
   
   handleDown: (ixs) ->
-    @mh.ve.surface.clearSelection()
+    @mh.sv.surface.clearSelection()
     if ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       @model = e
 
       console.log('mbox down')
-      @mh.ve.container.onmousemove = (eve) => @handleMove0(eve)
-      @mh.ve.scontainer.onmouseup = (eve) => @handleUp(eve)
-      @mh.ve.container.onmouseup = (eve) => @handleUp(eve)
+      @mh.sv.container.onmousemove = (eve) => @handleMove0(eve)
+      @mh.sv.ve.scontainer.onmouseup = (eve) => @handleUp(eve)
+      @mh.sv.container.onmouseup = (eve) => @handleUp(eve)
 
   stillOnMBox: (event) =>
     @mh.updateMouse(event)
-    @mh.ve.raycaster.setFromCamera(@mh.spos, @mh.ve.scamera)
-    ixs = @mh.ve.raycaster.intersectObjects(@mh.ve.sscene.children, true)
+    @mh.sv.raycaster.setFromCamera(@mh.spos, @mh.sv.ve.scamera)
+    ixs = @mh.sv.raycaster.intersectObjects(@mh.sv.ve.sscene.children, true)
     result = false
     for x in ixs
       if x.object.userData instanceof ModelBox
@@ -1519,7 +1521,7 @@ class MBoxSelectHandler
 
     if @instance?
       if @stillOnMBox(event)
-        @mh.ve.surface.removeElement(@mh.placingObject)
+        @mh.sv.surface.removeElement(@mh.placingObject)
         idx = @model.instances.indexOf(@instance)
         if idx > -1
           @model.instances.splice(idx, 1)
@@ -1529,16 +1531,16 @@ class MBoxSelectHandler
       else
         @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
         @mh.placingObject.sync()
-        @mh.ve.addie.update([@mh.placingObject])
-        @mh.ve.surface.clearSelection()
+        @mh.sv.ve.addie.update([@mh.placingObject])
+        @mh.sv.surface.clearSelection()
 
     else if !@instance?
-      @mh.ve.propsEditor.elements = [@model]
-      @mh.ve.propsEditor.show()
-      @mh.ve.equationEditor.show(@model)
+      @mh.sv.ve.propsEditor.elements = [@model]
+      @mh.sv.ve.propsEditor.show()
+      @mh.sv.ve.equationEditor.show(@model)
 
-    @mh.ve.container.onmousemove = null
-    @mh.ve.container.onmouseup = null
+    @mh.sv.container.onmousemove = null
+    @mh.sv.container.onmouseup = null
     @instance = null
   
   handleMove0: (event) ->
@@ -1548,22 +1550,22 @@ class MBoxSelectHandler
     @instance.model = @model
     @instance.addArgs()
     @model.instances.push(@instance)
-    @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
+    @mh.sv.container.onmousemove = (eve) => @handleMove1(eve)
 
   handleMove1: (event) ->
     #console.log('mbox move1')
     @mh.updateMouse(event)
-    @mh.ve.propsEditor.hide()
-    @mh.ve.equationEditor.hide()
-    @mh.ve.surface.clearSelection()
+    @mh.sv.ve.propsEditor.hide()
+    @mh.sv.ve.equationEditor.hide()
+    @mh.sv.surface.clearSelection()
 
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
-    bix = @mh.ve.raycaster.intersectObject(@mh.ve.surface.baseRect.obj3d)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
+    bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
 
     if bix.length > 0
       ox = @mh.placingObject.shp.geom.boundingSphere.radius
-      @mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
-      @mh.ve.render()
+      @mh.sv.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
+      @mh.sv.render()
 
 class SurfaceElementSelectHandler
   constructor: (@mh) ->
@@ -1772,6 +1774,7 @@ class PanHandler
     @p1 = new THREE.Vector2(0,0)
     
   handleDown: (event) =>
+    @mh.updateMouse(event)
     @p0.x = event.clientX
     @p0.y = event.clientY
     @p1.x = event.clientX
@@ -1788,7 +1791,9 @@ class PanHandler
     @p1.x = event.clientX
     @p1.y = event.clientY
     dx = -(@p1.x - @p0.x)
+    dx /= @mh.sv.zoomFactor
     dy = @p1.y - @p0.y
+    dy /= @mh.sv.zoomFactor
     @mh.sv.pan(dx, dy)
     @p0.x = @p1.x
     @p0.y = @p1.y
@@ -1846,9 +1851,9 @@ class LinkingHandler
   constructor: (@mh) ->
 
   handleDown0: (event) ->
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
-    ixs = @mh.ve.raycaster.intersectObjects(
-              @mh.ve.surface.baseRect.obj3d.children)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
+    ixs = @mh.sv.raycaster.intersectObjects(
+              @mh.sv.surface.baseRect.obj3d.children)
 
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
@@ -1860,11 +1865,11 @@ class LinkingHandler
         5
       )
 
-      @mh.placingLink = new BaseElements.Link(@mh.ve.surface.baseRect,
+      @mh.placingLink = new BaseElements.Link(@mh.sv.surface.baseRect,
         pos0, pos1, 0, 0, 5
       )
-      @mh.ve.surface.elements.push(@mh.placingLink)
-      @mh.placingLink.props.name = @mh.ve.namemanager.getName("link")
+      @mh.sv.surface.elements.push(@mh.placingLink)
+      @mh.placingLink.props.name = @mh.sv.ve.namemanager.getName("link")
       @mh.placingLink.id.name = @mh.placingLink.props.name
       
       ifname = ""
@@ -1879,15 +1884,15 @@ class LinkingHandler
       @mh.placingLink.ep_ifx[0] = ifname
       @mh.placingLink.endpoint[0].links.push(@mh.placingLink)
       ixs[0].object.lines.push(@mh.placingLink.ln)
-      @mh.ve.container.onmousemove = (eve) => @handleMove1(eve)
-      @mh.ve.container.onmousedown = (eve) => @handleDown1(eve)
+      @mh.sv.container.onmousemove = (eve) => @handleMove1(eve)
+      @mh.sv.container.onmousedown = (eve) => @handleDown1(eve)
     else
       console.log "! link0 miss"
 
   handleDown1: (event) ->
-    @mh.ve.raycaster.setFromCamera(@mh.pos, @mh.ve.sview.camera)
-    ixs = @mh.ve.raycaster.intersectObjects(
-                @mh.ve.surface.baseRect.obj3d.children)
+    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
+    ixs = @mh.sv.raycaster.intersectObjects(
+                @mh.sv.surface.baseRect.obj3d.children)
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! link1 " + e.constructor.name
@@ -1906,16 +1911,16 @@ class LinkingHandler
       @mh.placingLink.ep_ifx[1] = ifname
       @mh.placingLink.endpoint[1].links.push(@mh.placingLink)
 
-      @mh.ve.surface.updateLink(@mh.placingLink.ln)
+      @mh.sv.surface.updateLink(@mh.placingLink.ln)
       @mh.placingLink.ifInternetToWanLink()
       @mh.placingLink.ifPhysicalToPlink()
       @mh.placingLink.setEndpointData()
 
-      @mh.ve.addie.update([@mh.placingLink])
+      @mh.sv.ve.addie.update([@mh.placingLink])
 
 
-      @mh.ve.container.onmousemove = null
-      @mh.ve.container.onmousedown = (eve) => @mh.baseDown(eve)
+      @mh.sv.container.onmousemove = null
+      @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
     else
       console.log "! link1 miss"
 
@@ -1925,16 +1930,16 @@ class LinkingHandler
     
   handleMove1: (event) ->
     #TODO replace me with baseRectIx when that is ready
-    @.mh.updateMouse(event)
-    @.mh.ve.raycaster.setFromCamera(@.mh.pos, @.mh.ve.sview.camera)
-    bix = @.mh.ve.raycaster.intersectObject(@.mh.ve.surface.baseRect.obj3d)
+    @mh.updateMouse(event)
+    @mh.sv.raycaster.setFromCamera(@.mh.pos, @mh.icam)
+    bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
     if bix.length > 0
       #console.log "! lm1"
-      @.mh.ve.scene.updateMatrixWorld()
-      @.mh.placingLink.ln.geom.vertices[1].x = bix[bix.length - 1].point.x
-      @.mh.placingLink.ln.geom.vertices[1].y = bix[bix.length - 1].point.y
-      @.mh.placingLink.ln.geom.verticesNeedUpdate = true
-      @.mh.ve.render()
+      @mh.sv.scene.updateMatrixWorld()
+      @mh.placingLink.ln.geom.vertices[1].x = bix[bix.length - 1].point.x
+      @mh.placingLink.ln.geom.vertices[1].y = bix[bix.length - 1].point.y
+      @mh.placingLink.ln.geom.verticesNeedUpdate = true
+      @mh.sv.render()
 
 #Mouse handler encapsulates the logic of dealing with mouse events
 class MouseHandler
@@ -1965,8 +1970,8 @@ class MouseHandler
     @pos.x =  ((event.layerX - @apane.viewport.left) / (@sv.cwidth/2) ) * 2 - 1
     @pos.y = -((event.layerY - @apane.viewport.bottom) / @sv.cheight ) * 2 + 1
     
-    #@spos.x =  (event.layerX / @ve.scontainer.offsetWidth ) * 2 - 1
-    #@spos.y = -(event.layerY / @ve.scontainer.offsetHeight) * 2 + 1
+    @spos.x =  (event.layerX / @sv.ve.scontainer.offsetWidth ) * 2 - 1
+    @spos.y = -(event.layerY / @sv.ve.scontainer.offsetHeight) * 2 + 1
     #console.log(@pos.x + "," + @pos.y)
 
   baseRectIx: (event) ->
@@ -1978,15 +1983,15 @@ class MouseHandler
   placingLink: null
   
   makePlacingObject: (obj) ->
-    @sv.raycaster.setFromCamera(@pos, @sv.camera)
-    bix = @ve.raycaster.intersectObject(@sv.ve.surface.baseRect.obj3d)
+    @sv.raycaster.setFromCamera(@pos, @icam)
+    bix = @sv.raycaster.intersectObject(@sv.ve.surface.baseRect.obj3d)
     x = y = 0
     if bix.length > 0
       ix = bix[bix.length - 1]
       x = ix.point.x
       y = ix.point.y
 
-    @placingObject = @ve.surface.addElement(obj, x, y)
+    @placingObject = @sv.surface.addElement(obj, x, y)
 
   #onmousedown handlers
   baseDown: (event) ->
@@ -2019,11 +2024,16 @@ class MouseHandler
     ###
 
     if event.which == 1
-      @sv.raycaster.setFromCamera(@pos, @icam)
-      ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
+      @sv.raycaster.setFromCamera(@spos, @sv.ve.scamera)
+      sixs = @sv.raycaster.intersectObjects(@sv.ve.sscene.children, true)
+      if      @eboxSH.test(sixs) then @eboxSH.handleDown(sixs)
+      else if @mboxSH.test(sixs) then @mboxSH.handleDown(sixs)
+      else
+        @sv.raycaster.setFromCamera(@pos, @icam)
+        ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
 
-      if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
-      else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
+        if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
+        else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
 
     else if event.which = 3
       console.log("tommy chong")
