@@ -1957,11 +1957,13 @@ class MouseHandler
 
   
   updateMouse: (event) ->
-    @icam = @sv.getPane(new THREE.Vector2(event.layerX, event.layerY)).camera
-    #@pos.x =  (event.layerX / @ve.container.offsetWidth ) * 2 - 1
-    #@pos.y = -(event.layerY / @ve.container.offsetHeight) * 2 + 1
-    @pos.x =  (event.layerX / (@sv.cwidth/2) ) * 2 - 1
-    @pos.y = -(event.layerY / @sv.cheight ) * 2 + 1
+    @apane = @sv.getPane(new THREE.Vector2(event.layerX, event.layerY))
+    @icam = @apane.camera
+
+    #@pos.x =  (event.layerX / (@sv.cwidth/2) ) * 2 - 1
+    #@pos.y = -(event.layerY / @sv.cheight ) * 2 + 1
+    @pos.x =  ((event.layerX - @apane.viewport.left) / (@sv.cwidth/2) ) * 2 - 1
+    @pos.y = -((event.layerY - @apane.viewport.bottom) / @sv.cheight ) * 2 + 1
     
     #@spos.x =  (event.layerX / @ve.scontainer.offsetWidth ) * 2 - 1
     #@spos.y = -(event.layerY / @ve.scontainer.offsetHeight) * 2 + 1
@@ -1969,7 +1971,7 @@ class MouseHandler
 
   baseRectIx: (event) ->
     @updateMouse(event)
-    @sv.raycaster.setFromCamera(@pos, @sv.panes[0].camera)
+    @sv.raycaster.setFromCamera(@pos, @icam)
     @sv.raycaster.intersectObject(@sv.ve.surface.baseRect.obj3d)
 
   placingObject: null
@@ -2017,7 +2019,7 @@ class MouseHandler
     ###
 
     if event.which == 1
-      @sv.raycaster.setFromCamera(@pos, @sv.panes[0].camera)
+      @sv.raycaster.setFromCamera(@pos, @icam)
       ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
 
       if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
