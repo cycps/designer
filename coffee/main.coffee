@@ -974,10 +974,9 @@ class SplitView
   vmove: (event) =>
     x = event.clientX+"px"
     r = ($("#metasurface").width() - event.clientX)+"px"
-    console.log(r)
     $("#vsplitter").css("left", x)
     $("#surface0").css("right", r)
-    $("#surface1").css("left", x)
+    $("#surface1").css("left", (event.clientX+5)+"px")
     $("#surface1").css("width", "auto")
 
 class SurfaceView
@@ -1010,13 +1009,22 @@ class SurfaceView
     @renderer.render(@ve.scene, @camera)
   
   zoomin: (x = 3, p = new THREE.Vector2(0,0)) ->
-    console.log("zi")
     w = Math.abs(@camera.right - @camera.left)
     h = Math.abs(@camera.top - @camera.bottom)
     @camera.left += x * (p.x/w)
     @camera.right -= x * (1 - p.x/w)
     @camera.top -= x * (p.y/h)
     @camera.bottom += x * (1 - p.y/h)
+    @camera.updateProjectionMatrix()
+    @render()
+
+  pan: (dx, dy) =>
+    console.log("dx - " + dx)
+    console.log("dy - " + dy)
+    @camera.left += dx
+    @camera.right += dx
+    @camera.top += dy
+    @camera.bottom += dy
     @camera.updateProjectionMatrix()
     @render()
 
@@ -1691,7 +1699,33 @@ class EquationEditor
       @model.props.equations= $("#eqtnSrc").val()
     $("#eqtnEditor").css("display", "none")
 
+class PanHandler
 
+  constructor: (@mh) ->
+    @p0 = new THREE.Vector2(0,0)
+    @p1 = new THREE.Vector2(0,0)
+    
+  handleDown: (event) =>
+    @p0.x = event.clientX
+    @p0.y = event.clientY
+    @p1.x = event.clientX
+    @p1.y = event.clientY
+    @mh.sv.container.onmouseup = (eve) => @handleUp(eve)
+    @mh.sv.container.onmousemove = (eve) => @handleMove(eve)
+
+  handleUp: (event) =>
+    @mh.sv.container.onmousemove = null
+    @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
+    @mh.sv.container.onmouseup = null
+
+  handleMove: (event) =>
+    @p1.x = event.clientX
+    @p1.y = event.clientY
+    dx = -(@p1.x - @p0.x)
+    dy = @p1.y - @p0.y
+    @mh.sv.pan(dx, dy)
+    @p0.x = @p1.x
+    @p0.y = @p1.y
 
 class SurfaceSpaceSelectHandler
   constructor: (@mh) ->
@@ -1847,6 +1881,7 @@ class MouseHandler
     @surfaceESH = new SurfaceElementSelectHandler(this)
     @surfaceSSH = new SurfaceSpaceSelectHandler(this)
     @linkingH = new LinkingHandler(this)
+    @panHandler = new PanHandler(this)
 
   ondown: (event) -> @baseDown(event)
 
@@ -1912,11 +1947,17 @@ class MouseHandler
       if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
       else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
     ###
-    @sv.raycaster.setFromCamera(@pos, @sv.camera)
-    ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
 
-    if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
-    else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
+    if event.which == 1
+      @sv.raycaster.setFromCamera(@pos, @sv.camera)
+      ixs = @sv.raycaster.intersectObjects(@sv.scene.children, true)
+
+      if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
+      else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
+
+    else if event.which = 3
+      console.log("tommy chong")
+      @panHandler.handleDown(event)
 
     true
 
