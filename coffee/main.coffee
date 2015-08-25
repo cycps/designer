@@ -41,9 +41,10 @@ root.go = ->
     true
 
 #Global event handlers
-root.vz_mousedown = (event) ->
+root.vz_mousedown = (event, idx) ->
   #g.ve.mouseh.ondown(event)
-  g.ve.surfaceViews[0].mouseh.ondown(event)
+  g.ve.activeSView = g.ve.surfaceViews[idx]
+  g.ve.surfaceViews[idx].mouseh.ondown(event)
 
 root.hsplit_mdown = (event) =>
   g.ve.splitView.hdown(event)
@@ -55,9 +56,10 @@ root.vz_keydown = (event) =>
   #g.ve.keyh.ondown(event)
   g.ve.surfaceViews[0].keyh.ondown(event)
 
-root.vz_wheel = (event) =>
+root.vz_wheel = (event, idx) =>
   #g.ve.mouseh.onwheel(event)
-  g.ve.surfaceViews[0].mouseh.onwheel(event)
+  g.ve.activeSView = g.ve.surfaceViews[idx]
+  g.ve.surfaceViews[idx].mouseh.onwheel(event)
 
 root.run = (event) =>
   g.ve.addie.run()
@@ -711,7 +713,7 @@ class Surface
   moveSelection: -> #TODO
   
   glowMaterial: () ->
-    cam = @.ve.activeSView.camera
+    cam = @ve.activeSView.camera
     new THREE.ShaderMaterial({
       uniforms: {
           "c": { type: "f", value: 1.0 },
@@ -879,9 +881,9 @@ class VisualEnvironment
     @surface = new Surface(this)
     @activeSView = new SurfaceView(this, @sc0)
     @surfaceViews = [@activeSView,
-      @activeSView = new SurfaceView(this, @sc1),
-      @activeSView = new SurfaceView(this, @sc2),
-      @activeSView = new SurfaceView(this, @sc3)
+      new SurfaceView(this, @sc1),
+      new SurfaceView(this, @sc2),
+      new SurfaceView(this, @sc3)
     ]
     #@width = @container.offsetWidth
     #@height = @container.offsetHeight
@@ -938,7 +940,7 @@ class VisualEnvironment
     console.log("vsplit")
 
   render: ->
-    sv.render() for sv in @surfaceViews
+    sv.doRender() for sv in @surfaceViews
     #@renderer.clear()
     #@renderer.clearDepth()
     #@renderer.render(@scene, @camera)
@@ -970,6 +972,7 @@ class SplitView
   vup: (event) =>
     console.log("vup")
     $("#metasurface").off('mousemove')
+    @ve.render()
 
   vmove: (event) =>
     x = event.clientX+"px"
@@ -978,6 +981,7 @@ class SplitView
     $("#surface0").css("right", r)
     $("#surface1").css("left", (event.clientX+5)+"px")
     $("#surface1").css("width", "auto")
+    @ve.surfaceViews[1].reInitCamera()
 
 class SurfaceView
   constructor: (@ve, @container) ->
@@ -1003,10 +1007,25 @@ class SurfaceView
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
 
-  render: () ->
+  reInitCamera: () ->
+    @cwidth = @container.offsetWidth
+    @cheight = @container.offsetHeight
+    @l = Math.max(@cwidth, @cheight)
+    @renderer.setSize(@l, @l)
+    @camera.left = @l/-2
+    @camera.right = @l/2
+    @camera.top = @l/2
+    @camera.bottom = @l/-2
+    @camera.updateProjectionMatrix()
+    @doRender()
+
+  doRender: () ->
     @renderer.clear()
     @renderer.clearDepth()
-    @renderer.render(@ve.scene, @camera)
+    @renderer.render(@scene, @camera)
+
+  render: () ->
+    @ve.render()
   
   zoomin: (x = 3, p = new THREE.Vector2(0,0)) ->
     w = Math.abs(@camera.right - @camera.left)
