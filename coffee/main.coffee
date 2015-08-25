@@ -1438,6 +1438,7 @@ class EBoxSelectHandler
       #     this way many things may be linked without going back to the icon
       if e instanceof Link
         console.log "! linking objects"
+        @mh.placingObject = null
         @mh.sv.container.onmousemove = (eve) => @mh.linkingH.handleMove0(eve)
         @mh.sv.container.onmousedown = (eve) => @mh.linkingH.handleDown0(eve)
       else
@@ -1541,6 +1542,8 @@ class MBoxSelectHandler
 
     @mh.sv.container.onmousemove = null
     @mh.sv.container.onmouseup = null
+    @mh.sv.ve.scontainer.onmouseup = (eve) => null
+    @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
     @instance = null
   
   handleMove0: (event) ->
@@ -1925,7 +1928,7 @@ class LinkingHandler
       console.log "! link1 miss"
 
   handleMove0: (event) ->
-    @.mh.updateMouse(event)
+    @mh.updateMouse(event)
     #console.log "! lm0"
     
   handleMove1: (event) ->
