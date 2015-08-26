@@ -138,8 +138,9 @@ body {
   bottom: 0px;
   height: 0px;
   left: 90px;
-  right: 102px;
+  right: 90px;
   opacity: 0.74;
+  overflow: auto;
 }
 
 #diagText {
@@ -153,6 +154,7 @@ body {
   font-family: monospace;
   font-size: 95%;
   padding: 5px;
+  overflow: auto;
   //line-height: 174%;
 }
 

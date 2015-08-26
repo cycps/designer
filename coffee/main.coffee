@@ -1035,7 +1035,6 @@ class SurfaceView
     @surface = @ve.surface
     @cwidth = @container.offsetWidth
     @cheight = @container.offsetHeight
-    @zoomFactor = 1
 
     @l = Math.max(window.innerWidth, window.innerHeight)
     @l = Math.max(@cwidth, @cheight)
@@ -1056,6 +1055,7 @@ class SurfaceView
     @panes = [
       {
         id: 1,
+        zoomFactor: 1,
         background: 0x262626,
         viewport: {
           left: 0,
@@ -1070,6 +1070,7 @@ class SurfaceView
       }
       {
         id: 2,
+        zoomFactor: 1,
         background: 0x464646,
         viewport: {
           left: @cwidth,
@@ -1134,7 +1135,7 @@ class SurfaceView
   zoomin: (x = 3, p = new THREE.Vector2(0,0)) ->
     w = Math.abs(@mouseh.icam.right - @mouseh.icam.left)
     h = Math.abs(@mouseh.icam.top - @mouseh.icam.bottom)
-    @zoomFactor += x/w
+    @mouseh.apane.zoomFactor -= x/(@mouseh.apane.viewport.width)
     @mouseh.icam.left += x * (p.x/w)
     @mouseh.icam.right -= x * (1 - p.x/w)
     @mouseh.icam.top -= x * (p.y/h)
@@ -1143,8 +1144,6 @@ class SurfaceView
     @render()
 
   pan: (dx, dy) =>
-    console.log("dx - " + dx)
-    console.log("dy - " + dy)
     @mouseh.icam.left += dx
     @mouseh.icam.right += dx
     @mouseh.icam.top += dy
@@ -1870,9 +1869,9 @@ class PanHandler
     @p1.x = event.clientX
     @p1.y = event.clientY
     dx = -(@p1.x - @p0.x)
-    dx /= @mh.sv.zoomFactor
+    dx *= @mh.apane.zoomFactor
     dy = @p1.y - @p0.y
-    dy /= @mh.sv.zoomFactor
+    dy *= @mh.apane.zoomFactor
     @mh.sv.pan(dx, dy)
     @p0.x = @p1.x
     @p0.y = @p1.y
@@ -2037,6 +2036,8 @@ class MouseHandler
   ondown: (event) -> @baseDown(event)
 
   onwheel: (event) =>
+    @apane = @sv.getPane(new THREE.Vector2(event.layerX, event.layerY))
+    @icam = @apane.camera
     @sv.zoomin(-event.deltaY / 5, new THREE.Vector2(event.layerX, event.layerY))
 
   
@@ -2120,7 +2121,6 @@ class MouseHandler
         else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
 
     else if event.which = 3
-      console.log("tommy chong")
       @panHandler.handleDown(event)
 
     true
