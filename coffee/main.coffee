@@ -952,6 +952,18 @@ class VisualEnvironment
 
   showDiagnostics: () =>
     console.log("Showing Diagnostics")
+    h = window.innerHeight
+
+    dh = parseInt($("#diagnosticsPanel").css("height").replace('px', ''))
+    if dh > 0
+      $("#diagnosticsPanel").css("top", h+"px")
+      $("#hsplitter").css("top", "auto")
+    else
+      $("#diagnosticsPanel").css("top", (h-200)+"px")
+      $("#hsplitter").css("top", (h-205)+"px")
+      $("#diagnosticsPanel").css("height", "auto")
+
+
 
 class SplitView
   constructor: (@ve) ->
