@@ -963,8 +963,27 @@ class SplitView
     
 
   hdown: (event) =>
+    $("#metasurface").mouseup(@hup)
+    $("#diagnosticsPanel").mouseup(@hup)
+    $("#metasurface").mousemove(@hmove)
+    $("#diagnosticsPanel").mousemove(@hmove)
+    $("#diagnosticsPanel").css("height", "auto")
+
   hup: (event) =>
+    console.log("hup")
+    $("#metasurface").off('mousemove')
+    $("#metasurface").off('mouseup')
+    $("#diagnosticsPanel").off('mousemove')
+    $("#diagnosticsPanel").off('mouseup')
+
   hmove: (event) =>
+    $("#diagnosticsPanel").css("top", (event.clientY+5)+"px")
+    $("#hsplitter").css("top", event.clientY+"px")
+
+
+
+
+
 
   vdown: (event) =>
     $("#metasurface").mouseup(@vup)
@@ -973,6 +992,7 @@ class SplitView
   vup: (event) =>
     console.log("vup")
     $("#metasurface").off('mousemove')
+    $("#metasurface").off('mouseup')
     @ve.render()
 
   vmove: (event) =>
@@ -1432,10 +1452,30 @@ class Addie
     @ve.surface.elements.push(l)
     true
 
+  levelColor: (l) =>
+    switch l
+      when "info" then "blue"
+      when "warning" then "orange"
+      when "error" then "red"
+      when "success" then "green"
+      else "gray"
+
   compile: () =>
    console.log("asking addie to compile the design")
+   $("#diagText").html("")
+   $("#ajaxLoading").css("display", "block")
    $.get "/addie/"+dsg+"/design/compile", (data) =>
-     console.log("compilation result: " + data)
+     console.log("compilation result:")
+     console.log(data)
+     $("#ajaxLoading").css("display", "none")
+     if data.elements?
+      for d in data.elements
+        $("#diagText").append(
+          "<span style='color:"+@levelColor(d.level)+"'><b>"+
+              d.level+
+          "</b></span> - " + d.message + "<br />"
+        )
+
 
   run: () =>
     console.log("asking addie to run the experiment")
