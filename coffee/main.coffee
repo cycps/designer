@@ -955,6 +955,11 @@ class VisualEnvironment
 
 class SplitView
   constructor: (@ve) ->
+    @c0 = window.innerWidth
+    @c1 = @c0
+
+  splitRatio: () ->
+    @c0 / window.innerWidth
     
 
   hdown: (event) =>
@@ -971,14 +976,26 @@ class SplitView
     @ve.render()
 
   vmove: (event) =>
-    x = event.clientX+"px"
-    r = ($("#metasurface").width() - event.clientX)+"px"
+    @c1 = event.clientX
+    dc = @c1 - @c0
+    x = @c1+"px"
+    r = ($("#metasurface").width() - @c1)+"px"
     $("#vsplitter").css("left", x)
-    #$("#surface0").css("right", r)
-    #$("#surface1").css("left", (event.clientX+5)+"px")
-    #$("#surface1").css("width", "auto")
-    #@ve.surfaceViews[1].reInitCamera()
-    #@ve.surfaceViews[1].doRender()
+
+    left = 0
+    center = event.clientX
+    right = window.innerWidth
+
+    @ve.sview.panes[0].viewport.width = center - left
+    @ve.sview.panes[1].viewport.width = right - center
+    @ve.sview.panes[1].viewport.left = center
+
+    @ve.sview.panes[0].camera.right += dc
+    @ve.sview.panes[1].camera.right -= dc
+
+    @ve.sview.doRender()
+
+    @c0 = @c1
 
 class SurfaceView
   constructor: (@ve, @container) ->
@@ -1006,24 +1023,31 @@ class SurfaceView
 
     @panes = [
       {
+        id: 1,
         background: 0x262626,
         viewport: {
           left: 0,
           bottom: 0,
-          width: @cwidth/2,
+          width: @cwidth,
           height: @cheight
         },
         camera: new THREE.OrthographicCamera(
-          (@cwidth/2)/-2, (@cwidth/2)/2,
-          @cheight/2, @cheight/-2,
+          0, @cwidth,
+          @cheight, 0,
           1, 1000)
       }
       {
+        id: 2,
         background: 0x464646,
-        viewport: {left: @cwidth/2, bottom: 0, width: @cwidth/2, height: @cheight},
+        viewport: {
+          left: @cwidth,
+          bottom: 0,
+          width: 0,
+          height: @cheight
+        },
         camera: new THREE.OrthographicCamera(
-          (@cwidth/2)/-2, (@cwidth/2)/2,
-          @cheight/2, @cheight/-2,
+          0, 0,
+          @cheight, 0,
           1, 1000)
       }
     ]
@@ -1970,7 +1994,12 @@ class MouseHandler
 
     #@pos.x =  (event.layerX / (@sv.cwidth/2) ) * 2 - 1
     #@pos.y = -(event.layerY / @sv.cheight ) * 2 + 1
-    @pos.x =  ((event.layerX - @apane.viewport.left) / (@sv.cwidth/2) ) * 2 - 1
+    if @apane.id == 1
+      sr = @sv.ve.splitView.splitRatio()
+    else
+      sr = 1 - @sv.ve.splitView.splitRatio()
+
+    @pos.x =  ((event.layerX - @apane.viewport.left) / (@sv.cwidth * sr) ) * 2 - 1
     @pos.y = -((event.layerY - @apane.viewport.bottom) / @sv.cheight ) * 2 + 1
     
     @spos.x =  (event.layerX / @sv.ve.scontainer.offsetWidth ) * 2 - 1
