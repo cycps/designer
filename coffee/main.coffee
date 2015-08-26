@@ -169,7 +169,7 @@ Shapes = {
       @geom.computeBoundingSphere()
       @material = new THREE.MeshBasicMaterial(
         {
-          color: 0x7800ff,
+          color: 0xFDBF3B,
           opacity: 0.2,
           transparent: true
         }
@@ -719,7 +719,7 @@ class Surface
       uniforms: {
           "c": { type: "f", value: 1.0 },
           "p": { type: "f", value: 1.4 },
-          glowColor: { type: "c", value: new THREE.Color(0x7800ff) },
+          glowColor: { type: "c", value: new THREE.Color(0xFDBF3B) },
           viewVector: { type: "v3", value: new THREE.Vector3(0, 0, 200) }
       },
       vertexShader: document.getElementById("vertexShader").textContent,
