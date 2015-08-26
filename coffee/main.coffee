@@ -132,7 +132,9 @@ Shapes = {
 
   Line: class Line
     constructor: (color, from, to, z) ->
-      @material = new THREE.LineBasicMaterial({color: color, linewidth: 3})
+      @material = new THREE.LineBasicMaterial(
+        {color: color, linewidth: 3, transparent: false, opacity: 0.7}
+      )
       @geom = new THREE.Geometry()
       @geom.dynamic = true
       @geom.vertices.push(from, to)
@@ -435,7 +437,7 @@ BaseElements = {
       @endpoint = [null, null]
       @ep_ifx = ["",""]
       #TODO: s/ln/shp/g for consistency
-      @ln = new Shapes.Line(0xababab, from, to, z)
+      @ln = new Shapes.Line(0x5f5f5f, from, to, z)
       @ln.obj3d.userData = this
       @props = {
         name: "link0",
