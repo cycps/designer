@@ -65,6 +65,9 @@ root.vz_wheel = (event, idx) =>
 root.run = (event) =>
   g.ve.addie.run()
 
+root.materialize = (event) =>
+  g.ve.addie.materialize()
+
 root.newModel = (event) ->
   g.ve.mbox.newModel()
 
@@ -1493,8 +1496,15 @@ class Addie
   run: () =>
     console.log("asking addie to run the experiment")
     $.get "/addie/"+dsg+"/design/run", (data) =>
-      console.log("run result: " + data)
+      console.log("run result: ")
+      console.log(data)
     window.open(location.origin + "/results.html?xp=" + dsg)
+
+  materialize: () =>
+    console.log("asking addie to materialize the experiment")
+    $.get "/addie/"+dsg+"/design/materialize", (data) =>
+      console.log("materialize result: ")
+      console.log(data)
 
 
 class EBoxSelectHandler
