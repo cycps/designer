@@ -522,8 +522,15 @@ BaseElements = {
     ifInternetToWanLink:  ->
       @applyWanProps() if @isInternet()
 
+    removePhantomEndpoint: (i) ->
+      if @endpoint[i] instanceof Sax
+        delete @endpoint[i].props.interfaces[@ep_ifx[i]]
+
     ifPhysicalToPlink: ->
-      @applyPhysicalProps() if @isPhysical()
+      if @isPhysical()
+        @removePhantomEndpoint(0)
+        @removePhantomEndpoint(1)
+        @applyPhysicalProps()
     
     showProps: (f) ->
       f.add(@props, 'name')
