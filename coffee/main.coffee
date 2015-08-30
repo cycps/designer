@@ -633,9 +633,18 @@ class Surface
     if idx > -1
       @elements.splice(idx, 1)
 
-    idx = @baseRect.obj3d.children.indexOf(e.shp.obj3d)
+    obj3d = null
+    obj3d = e.shp.obj3d if e.shp?
+    obj3d = e.ln.obj3d if e.ln?
+    idx = @baseRect.obj3d.children.indexOf(obj3d)
     if idx > -1
       @baseRect.obj3d.children.splice(idx, 1)
+
+    if e.glowBubble?
+      idx = @selectGroup.children.indexOf(e.glowBubble)
+      if idx > -1
+        @selectGroup.children.splice(idx, 1)
+      delete e.glowBubble
 
     @ve.render()
 
@@ -722,8 +731,6 @@ class Surface
       @updateLink(ln) for ln in o.lines
     true
 
-
-  moveSelection: -> #TODO
   
   glowMaterial: () ->
     #cam = @ve.sview.camera
@@ -858,6 +865,22 @@ class Surface
   clearSelector: ->
     @selectorGroup.children = []
     @ve.render()
+
+  deleteSelection: () =>
+    console.log("deleting selection")
+    deletes = []
+    for x in @selectGroup.children
+      deletes.push(x.userData)
+      if x.userData.links?
+        deletes.push.apply(deletes, x.userData.links)
+    @ve.addie.delete(deletes)
+
+    for d in deletes
+      @removeElement(d)
+
+    @ve.propsEditor.hide()
+    @ve.equationEditor.hide()
+    true
 
 class NameManager
   constructor: () ->
@@ -1299,6 +1322,11 @@ class Addie
     #settings update is independent of other updates so we can break out of the
     #above update structure
     doSettingsUpdate()
+
+  delete: (xs) =>
+
+    console.log("addie deleting objects")
+    console.log(xs)
 
   load: () =>
     ($.get "/addie/"+dsg+"/design/read", (data, status, jqXHR) =>
@@ -2159,6 +2187,9 @@ class KeyHandler
       @ve.hsplit()
     else if(keycode == 86)
       @ve.vsplit()
+    else if(keycode == 8 || keycode == 46)
+      @ve.surface.deleteSelection()
+      event.preventDefault()
 
     
 
