@@ -878,7 +878,7 @@ class Surface
     for d in deletes
       @removeElement(d)
 
-    @ve.propsEditor.hide()
+    @ve.propsEditor.hide(false)
     @ve.equationEditor.hide()
     true
 
@@ -1328,6 +1328,33 @@ class Addie
     console.log("addie deleting objects")
     console.log(xs)
 
+    ds = []
+
+    for x in xs
+      if x instanceof Phyo
+        ds.push({type: "Phyo", element: x.props})
+      if x instanceof Computer
+        ds.push({type: "Computer", element: x.props})
+      if x instanceof Router
+        ds.push({type: "Router", element: x.props})
+      if x instanceof Switch
+        ds.push({type: "Switch", element: x.props})
+      if x instanceof Sax
+        ds.push({type: "Sax", element: x.props})
+      if x instanceof Link
+        if x.isPhysical()
+          ds.push({type: "Plink", element: x.props})
+        else
+          ds.push({type: "Link", element: x.props})
+    
+    delete_msg = { Elements: ds }
+
+
+    $.post "/addie/"+dsg+"/design/delete", JSON.stringify(delete_msg),
+      (data) =>
+        console.log("addie delete complete")
+        console.log(data)
+
   load: () =>
     ($.get "/addie/"+dsg+"/design/read", (data, status, jqXHR) =>
       console.log("design read success")
@@ -1366,6 +1393,9 @@ class Addie
     
     for x in plinks
       @loadPlink(x)
+
+    for k, v of @ve.namemanager.names
+      @ve.namemanager.names[k] = v + 10
 
     @ve.render()
 
@@ -1808,9 +1838,9 @@ class PropsEditor
           e.sync() if e.sync?
       @ve.addie.update(@elements)
 
-  hide: () ->
+  hide: (doSave = true) ->
     if @datgui?
-      @save()
+      @save() if doSave
       @datgui.destroy()
       @elements = []
       @cprops = {}
