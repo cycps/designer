@@ -883,16 +883,23 @@ class Surface
     true
 
 class NameManager
-  constructor: () ->
+  constructor: (@ve) ->
     @names = new Array()
 
-  getName: (s) ->
+  getName: (s, sys='root') ->
+    n = ""
     if !@names[s]?
       @names[s] = 0
+      n = s + @names[s]
     else
       @names[s]++
+      n = s + @names[s]
+      while @ve.surface.getElement(n, sys) != null
+        @names[s]++
+        n = s + @names[s]
 
-    s + @names[s]
+    #s + @names[s]
+    n
 
 class SimSettings
   constructor: () ->
@@ -955,7 +962,7 @@ class VisualEnvironment
     @keyh = new KeyHandler(this)
     #@raycaster = new THREE.Raycaster()
     #@raycaster.linePrecision = 10
-    @namemanager = new NameManager()
+    @namemanager = new NameManager(this)
     #@xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
     @propsEditor = new PropsEditor(this)
