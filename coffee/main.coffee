@@ -33,7 +33,8 @@ root.go = ->
     console.log("the xp is " + g.xp)
     initViz()
     #loadXP()
-    g.ve.addie.load()
+    #g.ve.addie.load()
+    g.ve.addie.init()
     true
   ).fail () ->
     console.log("fail to get current user, going back to login screen")
@@ -223,6 +224,11 @@ BaseElements = {
 
   currentId: (d) ->
     {name: d.props.name, sys: d.props.sys, design: dsg }
+    
+  setSshCmd: (x) =>
+    x.props.sshcmd =
+      'ssh -A -t '+g.user+'@users.isi.deterlab.net '+
+      'ssh -A '+x.props.name+'.'+g.user+'-'+dsg+'.SPIdev'
  
   #The Computer class is a representation of a computer
   Computer: class Computer
@@ -235,7 +241,8 @@ BaseElements = {
         sys: "root",
         os: "Ubuntu1504-54-STD",
         start_script: "",
-        interfaces: {}
+        interfaces: {},
+        sshcmd: ""
       }
       @id = {
         name: "computer0"
@@ -243,6 +250,7 @@ BaseElements = {
         design: dsg
       }
       @links = []
+
 
     showProps: (f) ->
       c = f.add(@props, 'name')
@@ -1198,6 +1206,13 @@ class SurfaceView
 #to manage a design
 class Addie
   constructor: (@ve) ->
+    @mstate = {
+      up: false
+    }
+
+  init: () =>
+    @load()
+    @msync()
 
   update: (xs) =>
     console.log("updating objects")
@@ -1371,6 +1386,7 @@ class Addie
     ).fail (data) =>
       console.log("design read fail " + data.status)
 
+
   loadedModels = {}
 
   loadElements: (elements) =>
@@ -1434,6 +1450,7 @@ class Addie
     c = new BaseElements.Computer(@ve.surface.baseRect,
                                   x.position.x, x.position.y, x.position.z)
     @setProps(c, x)
+    BaseElements.setSshCmd(c)
     @ve.surface.elements.push(c)
     true
 
@@ -1452,6 +1469,7 @@ class Addie
     s = new BaseElements.Sax(@ve.surface.baseRect,
                                x.position.x, x.position.y, x.position.z)
     @setProps(s, x)
+    BaseElements.setSshCmd(s)
     @ve.surface.elements.push(s)
     true
 
@@ -1460,6 +1478,7 @@ class Addie
                                 x.position.x, x.position.y, x.position.z)
 
     @setProps(r, x)
+    BaseElements.setSshCmd(r)
     @ve.surface.elements.push(r)
     true
 
@@ -1570,13 +1589,35 @@ class Addie
     $.get "/addie/"+dsg+"/design/run", (data) =>
       console.log("run result: ")
       console.log(data)
-    window.open(location.origin + "/results.html?xp=" + dsg)
+    #window.open(location.origin + "/results.html?xp=" + dsg)
 
   materialize: () =>
-    console.log("asking addie to materialize the experiment")
-    $.get "/addie/"+dsg+"/design/materialize", (data) =>
-      console.log("materialize result: ")
+    if @mstate.up
+      console.log("asking addie to dematerialize the experiment")
+      $("#materialize").html("Materialize")
+      #TODO do an async call here and then grey out the materialization button
+      #until the async call returns
+      @mstate.up = false
+    else
+      console.log("asking addie to materialize the experiment")
+      $("#materialize").html("Dematerialize")
+      @mstate.up = true
+      ###
+      $.get "/addie/"+dsg+"/design/materialize", (data) =>
+        console.log("materialize result: ")
+        console.log(data)
+      ###
+
+  #synchronize materialization status
+  msync: () =>
+    console.log("synchronizing materialization state with addie")
+    $.get "/addie/"+dsg+"/design/mstate", (data) =>
+      console.log("materialization state:")
       console.log(data)
+      if data.Status? and data.Status == "Active"
+        @mstate.up = true
+        $("#materialize").html("Dematerialize")
+
 
 
 class EBoxSelectHandler
@@ -1836,6 +1877,12 @@ class PropsEditor
     @datgui = new dat.GUI()
     for k, v of @cprops
       @datgui.add(@cprops, k)
+
+
+    if @elements.length == 1 and @elements[0].funcs?
+      for k, v of @elements[0].funcs
+        @datgui.add(@elements[0].funcs, k)
+
     true
 
   save: () ->
