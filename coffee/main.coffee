@@ -292,7 +292,7 @@ BaseElements = {
             console.log(f)
             $("#upModelIcon").off("change")
 
-            fd = $("#uploadModelIconForm")[0]
+            fd = new FormData($("#uploadModelIconForm")[0])
             xhr = new XMLHttpRequest()
             xhr.open("POST", "/addie/"+dsg+"/design/modelIco")
             xhr.send(fd)
