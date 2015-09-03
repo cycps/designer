@@ -137,7 +137,12 @@ Shapes = {
   Line: class Line
     constructor: (color, from, to, z) ->
       @material = new THREE.LineBasicMaterial(
-        {color: color, linewidth: 3, transparent: false, opacity: 0.7}
+        {
+         color: color,
+         linewidth: 3
+         #transparent: false,
+         #opacity: 1
+        }
       )
       @geom = new THREE.Geometry()
       @geom.dynamic = true
@@ -272,7 +277,27 @@ BaseElements = {
       @props = {
         name: "model0",
         params: "",
-        equations: ""
+        equations: "",
+        image: ""
+      }
+      @funcs = {
+        "Set Icon": () =>
+          console.log("setting sprite for " + @props.name)
+          $("#upModelName").val(@props.name)
+          $("#upModelIcon").change () =>
+            f = $("#upModelIcon")[0].files[0]
+            console.log("sprite selected")
+            mdl = $("#upModelName").val()
+            console.log("model is " + mdl)
+            console.log(f)
+            $("#upModelIcon").off("change")
+
+            fd = $("#uploadModelIconForm")[0]
+            xhr = new XMLHttpRequest()
+            xhr.open("POST", "/addie/"+dsg+"/design/modelIco")
+            xhr.send(fd)
+
+          $("#upModelIcon").click()
       }
       @id = {
         name: "model0"
@@ -448,7 +473,7 @@ BaseElements = {
       @endpoint = [null, null]
       @ep_ifx = ["",""]
       #TODO: s/ln/shp/g for consistency
-      @ln = new Shapes.Line(0x5f5f5f, from, to, z)
+      @ln = new Shapes.Line(0xcacaca, from, to, z)
       @ln.obj3d.userData = this
       @props = {
         name: "link0",
@@ -507,6 +532,16 @@ BaseElements = {
       }
       @props[@endpoint[0].props.name] = "" if @endpoint[0] #instanceof Phyo
       @props[@endpoint[1].props.name] = "" if @endpoint[1] #instanceof Phyo
+      @ln.material.color = new THREE.Color(0x125634)
+      @ln.geom.colorsNeedUpdate = true
+
+    setColor: () ->
+      if @isPhysical()
+        @ln.material.color = new THREE.Color(0x125634)
+        @ln.geom.colorsNeedUpdate = true
+      else
+        @ln.material.color = new THREE.Color(0x123456)
+        @ln.geom.colorsNeedUpdate = true
 
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
@@ -539,6 +574,9 @@ BaseElements = {
         @removePhantomEndpoint(0)
         @removePhantomEndpoint(1)
         @applyPhysicalProps()
+      else
+        @ln.material.color = new THREE.Color(0x123456)
+        @ln.geom.colorsNeedUpdate = true
     
     showProps: (f) ->
       f.add(@props, 'name')
@@ -590,10 +628,13 @@ class StaticElementBox extends ElementBox
     @addElement((box, x, y) -> new BaseElements.Router(box, x, y, 5))
     @addElement((box, x, y) -> new BaseElements.Switch(box, x, y, 5))
     @addElement((box, x, y) ->
-      new BaseElements.Link(box,
-        new THREE.Vector3(-12.5, 12.5, 5), new THREE.Vector3(12.5, -12.5, 5),
-        x, y, 5, true
-      )
+      lnk =
+        new BaseElements.Link(box,
+          new THREE.Vector3(-12.5, 12.5, 5), new THREE.Vector3(12.5, -12.5, 5),
+          x, y, 5, true
+        )
+      lnk.ln.material.color = new THREE.Color(0xcacaca)
+      lnk
     )
     @addElement((box, x, y) -> new BaseElements.Sax(box, x, y, 5))
 
@@ -1521,6 +1562,7 @@ class Addie
     @setProps(l, x)
     l.setEndpointData()
     @ve.surface.elements.push(l)
+    l.setColor()
     true
 
   #grosspants
@@ -1921,6 +1963,7 @@ class PropsEditor
         continue if k == 'args'
         continue if k == 'equations'
         continue if k == 'bindings'
+        continue if k == 'image'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
@@ -2124,6 +2167,7 @@ class LinkingHandler
       @mh.placingLink.ifInternetToWanLink()
       @mh.placingLink.ifPhysicalToPlink()
       @mh.placingLink.setEndpointData()
+      @mh.sv.render()
 
       @mh.sv.ve.addie.update([@mh.placingLink])
 
