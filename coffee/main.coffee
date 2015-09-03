@@ -228,7 +228,7 @@ BaseElements = {
   setSshCmd: (x) =>
     x.props.sshcmd =
       'ssh -A -t '+g.user+'@users.isi.deterlab.net '+
-      'ssh -A '+x.props.name+'.'+g.user+'-'+dsg+'.SPIdev'
+      'ssh -A '+x.props.name+'.'+g.user+'-'+dsg+'.cypress'
  
   #The Computer class is a representation of a computer
   Computer: class Computer
@@ -239,7 +239,7 @@ BaseElements = {
       @props = {
         name: "computer0",
         sys: "root",
-        os: "Ubuntu1504-54-STD",
+        os: "Ubuntu1404-54-STD",
         start_script: "",
         interfaces: {},
         sshcmd: ""
