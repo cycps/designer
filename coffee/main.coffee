@@ -377,7 +377,7 @@ BaseElements = {
         sys: "root",
         model: "",
         args: "",
-        init: ""
+        init: "",
       }
       @id = {
         name: "model0",
@@ -462,7 +462,8 @@ BaseElements = {
         design: dsg,
         sense: "",
         actuate: ""
-        interfaces: {}
+        interfaces: {},
+        sshcmd: ""
       }
       @id = {
         name: "sax0",
@@ -494,7 +495,8 @@ BaseElements = {
         sys: "root",
         capacity: 100,
         latency: 0,
-        interfaces: {}
+        interfaces: {},
+        sshcmd: ""
       }
       @id = {
         name: "router0"
@@ -746,13 +748,15 @@ class Surface
   addElement: (ef, x, y) ->
     e = null
     if ef instanceof Phyo and ef.tex?
-      #ef.shp.obj3d.userData = null
       e = new ef.constructor(@baseRect, x, y, 50, ef.tex)
     else
       e = new ef.constructor(@baseRect, x, y, 50)
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
     e.id.name = e.props.name
     e.props.design = dsg
+    if e.props.sshcmd?
+      BaseElements.setSshCmd(e)
+
     @elements.push(e)
     @ve.render()
     e
