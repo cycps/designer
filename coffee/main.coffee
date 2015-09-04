@@ -155,6 +155,24 @@ Shapes = {
     
     select: ->
 
+  Icon: class Icon
+    constructor: (@texture, x, y, z, s) ->
+      #@texture = _texture.clone()
+      #@texture.needsUpdate = true
+      @material = new THREE.SpriteMaterial({
+        map: @texture,
+        depthTest: false,
+        depthWrite: false
+      })
+      @obj3d= new THREE.Sprite(@material)
+      @obj3d.position.set(x,y,z)
+      @obj3d.scale.set(30, 30, 1.0)
+      @obj3d.lines = []
+      @obj3d.linep = new THREE.Vector3(x, y, 5)
+    
+    select: ->
+
+
   SelectionCube: class SelectionCube
     constructor: () ->
       @geom = new THREE.Geometry()
@@ -274,6 +292,7 @@ BaseElements = {
       @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
+      @sprite = false
       @props = {
         name: "model0",
         params: "",
@@ -297,7 +316,30 @@ BaseElements = {
             xhr.open("POST", "/addie/"+dsg+"/design/modelIco")
             xhr.send(fd)
 
+            idx = @parent.obj3d.remove(@shp.obj3d)
+            map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_"+mdl+".png")
+            material = new THREE.SpriteMaterial({
+              map: map,
+              alphaTest: 0.5,
+              depthTest: false,
+              depthWrite: false
+            })
+            sprite = new THREE.Sprite(material)
+            sprite.position.set(@shp.obj3d.position.x,
+              @shp.obj3d.position.y,
+              @shp.obj3d.position.z
+            )
+            #sprite.position.set(300, 300, 70)
+            sprite.scale.set(30, 30, 1.0)
+            @shp = { obj3d: sprite }
+            @shp.obj3d.userData = this
+            @parent.obj3d.add(@shp.obj3d)
+            @sprite = true
+            g.ve.render()
+            true
+
           $("#upModelIcon").click()
+
       }
       @id = {
         name: "model0"
@@ -305,8 +347,30 @@ BaseElements = {
       @instances = []
 
     instantiate: (parent, x, y, z) ->
-      obj = new Phyo(parent, x, y, z)
+
+      shp = null
+      if @sprite
+
+        map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_"+@props.name+".png")
+        material = new THREE.SpriteMaterial({
+          map: map,
+          alphaTest: 0.5,
+          depthTest: false,
+          depthWrite: false,
+          useScreenCoordinates: false
+        })
+        sprite = new THREE.Sprite(material)
+        shp = { obj3d: sprite }
+
+        #@shp.obj3d.userData = null #we are recursive and this makes clone() sad
+        #shp = { obj3d: @shp.obj3d.clone() }
+        #@shp.obj3d.userData = this
+
+      obj = new Phyo(parent, x, y, z, shp)
+
+      #shp.obj3d.userData = obj
       obj.props.model = @props.name
+
       obj
 
 
@@ -314,9 +378,37 @@ BaseElements = {
     cyjs: ->
   
   Phyo: class Phyo
-    constructor: (@parent, x, y, z) ->
-      @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
+    constructor: (@parent, x, y, z, _shp = null) ->
+      ###
+      if _shp == null
+        @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
+        @sprite = false
+      else
+        @shp = _shp
+        @sprite = true
+      ###
+      
+      map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_Rotor.png")
+      ###
+      material = new THREE.SpriteMaterial({
+        map: map,
+        #alphaTest: 0.5,
+        depthTest: false,
+        depthWrite: false
+      })
+      sprite = new THREE.Sprite(material)
+      @shp = { obj3d: sprite }
+
       @shp.obj3d.userData = this
+      @shp.obj3d.lines = []
+      @shp.obj3d.linep = new THREE.Vector3(x, y, 5)
+      @shp.obj3d.position.set(x,y,z)
+      @shp.obj3d.scale.set(30, 30, 1.0)
+      @shp.obj3d.select = () ->
+      ###
+      @shp = new Shapes.Icon(map, x, y, z, 30)
+      @shp.obj3d.userData = this
+
       @model = null
       if @parent?
         @parent.obj3d.add(@shp.obj3d)
@@ -669,6 +761,11 @@ class Surface
     @elements = []
 
   addElement: (ef, x, y) ->
+    e = null
+    #if ef instanceof Phyo and ef.sprite
+      #ef.shp.obj3d.userData = null
+      #e = new ef.constructor(@baseRect, x, y, 50, { obj3d: ef.shp.obj3d })
+    #else
     e = new ef.constructor(@baseRect, x, y, 50)
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
     e.id.name = e.props.name
@@ -853,6 +950,8 @@ class Surface
 
   selectObj: (obj) ->
 
+    doSelect = true
+
     if not obj.glowBubble?
       if obj.shp instanceof Shapes.Circle
         p = obj.shp.obj3d.position
@@ -862,6 +961,12 @@ class Surface
         p = obj.shp.obj3d.position
         s = obj.shp.geom.boundingSphere.radius + 3
         l = s*1.5
+        gs = @glowCube(l, l, l, p.x, p.y, p.z)
+      else if obj.shp instanceof Shapes.Icon
+        p = obj.shp.obj3d.position
+        obj.shp.obj3d.geometry.computeBoundingSphere()
+        s = obj.shp.obj3d.geometry.boundingSphere.radius + 3
+        l = s*10.5
         gs = @glowCube(l, l, l, p.x, p.y, p.z)
       else if obj.shp instanceof Shapes.Diamond
         p = obj.shp.obj3d.position
@@ -883,10 +988,12 @@ class Surface
       else
         console.log "unkown object to select"
         console.log obj
+        doSelect = false
 
-      gs.userData = obj
-      obj.glowBubble = gs
-      @selectGroup.add(gs)
+      if doSelect
+        gs.userData = obj
+        obj.glowBubble = gs
+        @selectGroup.add(gs)
 
       ###
       if obj.shp?
@@ -970,6 +1077,7 @@ class VisualEnvironment
   constructor: (@sc0, @sc1, @sc2, @sc3, @scontainer) ->
     @scene = new THREE.Scene()
     @sscene = new THREE.Scene()
+    @pscene = new THREE.Scene()
     @surface = new Surface(this)
     #@surfaceViews[1].renderer.setClearColor(0x363636, 1)
     #@width = @container.offsetWidth
@@ -1479,6 +1587,20 @@ class Addie
     @loadModels(m.models)
     @loadElements(m.elements)
     @loadSimSettings(m.simSettings)
+
+
+    ###
+    map = THREE.ImageUtils.loadTexture("ico/murphy_coho_Rotor.png")
+    material = new THREE.SpriteMaterial({map: map, alphaTest: 0.5, depthTest: false, depthWrite: false})
+    sprite = new THREE.Sprite(material)
+    sprite.position.set(300, 300, 70)
+    sprite.scale.set(30, 30, 1.0)
+    @ve.surface.baseRect.obj3d.add(sprite)
+    @ve.render()
+    @ve.render()
+    #@ve.scene.add(sprite)
+    ###
+    
     true
 
   setProps: (x, p) =>
@@ -1721,7 +1843,7 @@ class EBoxSelectHandler
     bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
 
     if bix.length > 0
-      ox = @mh.placingObject.shp.geom.boundingSphere.radius
+      #ox = @mh.placingObject.shp.geom.boundingSphere.radius
       @mh.sv.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       @mh.sv.render()
 
@@ -1808,7 +1930,7 @@ class MBoxSelectHandler
     bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
 
     if bix.length > 0
-      ox = @mh.placingObject.shp.geom.boundingSphere.radius
+      #ox = @mh.placingObject.shp.geom.boundingSphere.radius
       @mh.sv.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       @mh.sv.render()
 
@@ -1893,7 +2015,7 @@ class SurfaceElementSelectHandler
     @p1.copy(bix[0].point)
 
     if bix.length > 0
-      ox = @mh.placingObject.shp.geom.boundingSphere.radius
+      #ox = @mh.placingObject.shp.geom.boundingSphere.radius
       #@mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       #@mh.ve.surface.moveObject(@mh.ve.surface.selectGroup, bix[0].point)
       @applyGroupMove()
