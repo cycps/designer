@@ -314,17 +314,14 @@ BaseElements = {
             fd = new FormData($("#uploadModelIconForm")[0])
             xhr = new XMLHttpRequest()
             xhr.open("POST", "/addie/"+dsg+"/design/modelIco")
-            xhr.send(fd)
-            g.ve.loadIcon(mdl, (tex) =>
-              @setIcon(tex)
-            )
 
-            ###
-            THREE.ImageUtils.loadTexture(
-              "ico/"+g.user+"_"+dsg+"_"+mdl+".png", {}, (tex) =>
-                g.ve.render()
-            )
-            ###
+            xhr.onreadystatechange = () =>
+              if xhr.readyState == 4 && xhr.status == 200
+                g.ve.loadIcon(mdl, (tex) =>
+                  @setIcon(tex)
+                )
+            
+            xhr.send(fd)
 
             true
 
@@ -365,21 +362,7 @@ BaseElements = {
   
   Phyo: class Phyo
     constructor: (@parent, x, y, z, @tex = null) ->
-      ###
-      if _shp == null
-        @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
-        @sprite = false
-      else
-        @shp = _shp
-        @sprite = true
-      ###
-     
       if @tex == null
-        ###
-        map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_Rotor.png", {}, (d) =>
-          g.ve.render()
-        )
-        ###
         @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
         @shp.obj3d.userData = this
       else
@@ -1117,7 +1100,7 @@ class VisualEnvironment
   loadIcon: (name, f = null) =>
     if not @iconCache[name]?
       THREE.ImageUtils.loadTexture(
-        "ico/"+g.user+"_"+dsg+"_"+name+".png", {}, (tex) =>
+        "ico/"+g.user+"_"+name+".png", {}, (tex) =>
            @iconCache[name] = tex
            if f?
              f(tex)
