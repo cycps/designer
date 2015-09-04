@@ -405,14 +405,13 @@ BaseElements = {
       @args = []
 
     setIcon: (x=0, y=0, z=50) =>
-      material = new THREE.SpriteMaterial({
-        map: @tex,
-        #alphaTest: 0.5,
-        depthTest: false,
-        depthWrite: false
-      })
+      if @parent? and @shp?
+        @parent.obj3d.remove(@shp.obj3d)
       @shp = new Shapes.Icon(@tex, x, y, z)
       @shp.obj3d.userData = this
+      if @parent?
+        @parent.obj3d.add(@shp.obj3d)
+      g.ve.render()
 
     addArgs: () ->
       _args = @model.props.params
@@ -1581,7 +1580,17 @@ class Addie
 
       if m.props.icon != ''
         @ve.loadIcon(m.props.name, (tex) =>
-          m.setIcon(@ve.iconCache[m.props.name])
+          tex = @ve.iconCache[m.props.name]
+          _tex = tex.clone()
+          _tex.needsUpdate = true
+          m.setIcon(tex)
+          for x in m.instances
+            x.tex = tex.clone()
+            x.tex.needsUpdate = true
+            x.setIcon(
+              x.shp.obj3d.position.x,
+              x.shp.obj3d.position.y
+            )
         )
         true
 
@@ -1590,6 +1599,8 @@ class Addie
 
   doLoad: (m) =>
     @loadModels(m.models)
+    #while(@latchup > @latchdown)
+    #  console.log(@latchdown)
     @loadElements(m.elements)
     @loadSimSettings(m.simSettings)
     true
@@ -1609,11 +1620,11 @@ class Addie
     true
 
   loadPhyo: (x) =>
+    m = loadedModels[x.model]
     p = new BaseElements.Phyo(@ve.surface.baseRect,
                                x.position.x, x.position.y, x.position.z)
     @setProps(p, x)
     @ve.surface.elements.push(p)
-    m = loadedModels[p.props.model]
     m.instances.push(p)
     p.model = m
     p.loadArgValues()
