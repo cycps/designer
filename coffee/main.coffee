@@ -1763,11 +1763,9 @@ class Addie
       console.log("asking addie to materialize the experiment")
       $("#materialize").html("Dematerialize")
       @mstate.up = true
-      ###
       $.get "/addie/"+dsg+"/design/materialize", (data) =>
         console.log("materialize result: ")
         console.log(data)
-      ###
 
   #synchronize materialization status
   msync: () =>
