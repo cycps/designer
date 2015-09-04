@@ -156,7 +156,7 @@ Shapes = {
     select: ->
 
   Icon: class Icon
-    constructor: (@texture, x, y, z, s) ->
+    constructor: (@texture, x, y, z) ->
       #@texture = _texture.clone()
       #@texture.needsUpdate = true
       @material = new THREE.SpriteMaterial({
@@ -315,22 +315,16 @@ BaseElements = {
             xhr = new XMLHttpRequest()
             xhr.open("POST", "/addie/"+dsg+"/design/modelIco")
             xhr.send(fd)
+            g.ve.loadIcon(mdl, (tex) =>
+              @setIcon(tex)
+            )
 
-            @parent.obj3d.remove(@shp.obj3d)
+            ###
             THREE.ImageUtils.loadTexture(
               "ico/"+g.user+"_"+dsg+"_"+mdl+".png", {}, (tex) =>
                 g.ve.render()
-                _shp = new Shapes.Icon(tex,
-                  @shp.obj3d.position.x,
-                  @shp.obj3d.position.y,
-                  @shp.obj3d.position.z)
-                @shp = _shp
-                @shp.obj3d.userData = this
-                g.ve.iconCache[mdl] = tex
-                @parent.obj3d.add(@shp.obj3d)
-                g.ve.render()
-                @tex = tex
             )
+            ###
 
             true
 
@@ -341,6 +335,19 @@ BaseElements = {
         name: "model0"
       }
       @instances = []
+
+    setIcon: (tex) =>
+      @parent.obj3d.remove(@shp.obj3d)
+      _shp = new Shapes.Icon(tex,
+        @shp.obj3d.position.x,
+        @shp.obj3d.position.y,
+        @shp.obj3d.position.z)
+      @shp = _shp
+      @shp.obj3d.userData = this
+      #g.ve.iconCache[mdl] = tex
+      @parent.obj3d.add(@shp.obj3d)
+      g.ve.render()
+      @tex = tex
 
     instantiate: (parent, x, y, z) ->
 
@@ -397,7 +404,7 @@ BaseElements = {
       @links = []
       @args = []
 
-    setIcon: (x=0, y=0, z=0) =>
+    setIcon: (x=0, y=0, z=50) =>
       material = new THREE.SpriteMaterial({
         map: @tex,
         #alphaTest: 0.5,
@@ -1108,6 +1115,17 @@ class VisualEnvironment
     @simSettings = new SimSettings()
     @splitView = new SplitView(this)
 
+  loadIcon: (name, f = null) =>
+    if not @iconCache[name]?
+      THREE.ImageUtils.loadTexture(
+        "ico/"+g.user+"_"+dsg+"_"+name+".png", {}, (tex) =>
+           @iconCache[name] = tex
+           if f?
+             f(tex)
+      )
+    else
+      f(@iconCache[name])
+
   hsplit: () =>
     console.log("hsplit")
   
@@ -1560,6 +1578,12 @@ class Addie
       m.props = x
       m.id.name = x.name
       loadedModels[m.props.name] = m
+
+      if m.props.icon != ''
+        @ve.loadIcon(m.props.name, (tex) =>
+          m.setIcon(@ve.iconCache[m.props.name])
+        )
+        true
 
   loadSimSettings: (settings) =>
     @ve.simSettings.props = settings
