@@ -1764,6 +1764,9 @@ class Addie
     if @mstate.up
       console.log("asking addie to dematerialize the experiment")
       $("#materialize").html("Materialize")
+      $.get "/addie/"+dsg+"/design/dematerialize", (data) =>
+        console.log("dematerialize result: ")
+        console.log(data)
       #TODO do an async call here and then grey out the materialization button
       #until the async call returns
       @mstate.up = false
