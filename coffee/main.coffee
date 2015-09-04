@@ -388,9 +388,13 @@ BaseElements = {
       @args = []
 
     setIcon: (x=0, y=0, z=50) =>
+      lp = @shp.obj3d.linep
+      ls = @shp.obj3d.lines
       if @parent? and @shp?
         @parent.obj3d.remove(@shp.obj3d)
       @shp = new Shapes.Icon(@tex, x, y, z)
+      @shp.obj3d.linep = lp
+      @shp.obj3d.lines = ls
       @shp.obj3d.userData = this
       if @parent?
         @parent.obj3d.add(@shp.obj3d)
@@ -462,6 +466,12 @@ BaseElements = {
         design: dsg
       }
       @links = []
+    
+    onIdUpdate: ->
+      for x in @links
+        if x.isPhysical() and @id.name != @props.name
+          x.props[@props.name] = x.props[@id.name]
+          delete(x.props[@id.name])
     
     #cyjs generates the json for this object
     cyjs: ->
