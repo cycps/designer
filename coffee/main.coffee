@@ -1121,6 +1121,7 @@ class VisualEnvironment
            @iconCache[name] = tex
            if f?
              f(tex)
+             true
       )
     else
       f(@iconCache[name])
@@ -1579,20 +1580,21 @@ class Addie
       loadedModels[m.props.name] = m
 
       if m.props.icon != ''
-        @ve.loadIcon(m.props.name, (tex) =>
-          tex = @ve.iconCache[m.props.name]
-          _tex = tex.clone()
-          _tex.needsUpdate = true
-          m.setIcon(tex)
-          for x in m.instances
-            x.tex = tex.clone()
-            x.tex.needsUpdate = true
-            x.setIcon(
-              x.shp.obj3d.position.x,
-              x.shp.obj3d.position.y
-            )
-        )
-        true
+        do (m) => #capture m-ref before it gets clobbered by loop
+          @ve.loadIcon(m.props.name, (tex) ->
+            #tex = @ve.iconCache[m.props.name]
+            _tex = tex.clone()
+            _tex.needsUpdate = true
+            m.setIcon(_tex)
+            for i in m.instances
+              i.tex = tex.clone()
+              i.tex.needsUpdate = true
+              i.setIcon(
+                i.shp.obj3d.position.x,
+                i.shp.obj3d.position.y
+              )
+          )
+          true
 
   loadSimSettings: (settings) =>
     @ve.simSettings.props = settings
