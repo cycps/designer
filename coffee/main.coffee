@@ -297,7 +297,7 @@ BaseElements = {
         name: "model0",
         params: "",
         equations: "",
-        image: ""
+        icon: ""
       }
       @funcs = {
         "Set Icon": () =>
@@ -316,26 +316,22 @@ BaseElements = {
             xhr.open("POST", "/addie/"+dsg+"/design/modelIco")
             xhr.send(fd)
 
-            idx = @parent.obj3d.remove(@shp.obj3d)
-            map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_"+mdl+".png")
-            material = new THREE.SpriteMaterial({
-              map: map,
-              alphaTest: 0.5,
-              depthTest: false,
-              depthWrite: false
-            })
-            sprite = new THREE.Sprite(material)
-            sprite.position.set(@shp.obj3d.position.x,
-              @shp.obj3d.position.y,
-              @shp.obj3d.position.z
+            @parent.obj3d.remove(@shp.obj3d)
+            THREE.ImageUtils.loadTexture(
+              "ico/"+g.user+"_"+dsg+"_"+mdl+".png", {}, (tex) =>
+                g.ve.render()
+                _shp = new Shapes.Icon(tex,
+                  @shp.obj3d.position.x,
+                  @shp.obj3d.position.y,
+                  @shp.obj3d.position.z)
+                @shp = _shp
+                @shp.obj3d.userData = this
+                g.ve.iconCache[mdl] = tex
+                @parent.obj3d.add(@shp.obj3d)
+                g.ve.render()
+                @tex = tex
             )
-            #sprite.position.set(300, 300, 70)
-            sprite.scale.set(30, 30, 1.0)
-            @shp = { obj3d: sprite }
-            @shp.obj3d.userData = this
-            @parent.obj3d.add(@shp.obj3d)
-            @sprite = true
-            g.ve.render()
+
             true
 
           $("#upModelIcon").click()
@@ -348,29 +344,12 @@ BaseElements = {
 
     instantiate: (parent, x, y, z) ->
 
-      shp = null
-      if @sprite
-
-        map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_"+@props.name+".png")
-        material = new THREE.SpriteMaterial({
-          map: map,
-          alphaTest: 0.5,
-          depthTest: false,
-          depthWrite: false,
-          useScreenCoordinates: false
-        })
-        sprite = new THREE.Sprite(material)
-        shp = { obj3d: sprite }
-
-        #@shp.obj3d.userData = null #we are recursive and this makes clone() sad
-        #shp = { obj3d: @shp.obj3d.clone() }
-        #@shp.obj3d.userData = this
-
-      obj = new Phyo(parent, x, y, z, shp)
-
-      #shp.obj3d.userData = obj
+      if @tex?
+        obj = new Phyo(parent, x, y, z, @tex.clone())
+        obj.tex.needsUpdate = true
+      else
+        obj = new Phyo(parent, x, y, z)
       obj.props.model = @props.name
-
       obj
 
 
@@ -378,7 +357,7 @@ BaseElements = {
     cyjs: ->
   
   Phyo: class Phyo
-    constructor: (@parent, x, y, z, _shp = null) ->
+    constructor: (@parent, x, y, z, @tex = null) ->
       ###
       if _shp == null
         @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
@@ -387,27 +366,18 @@ BaseElements = {
         @shp = _shp
         @sprite = true
       ###
-      
-      map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_Rotor.png")
-      ###
-      material = new THREE.SpriteMaterial({
-        map: map,
-        #alphaTest: 0.5,
-        depthTest: false,
-        depthWrite: false
-      })
-      sprite = new THREE.Sprite(material)
-      @shp = { obj3d: sprite }
+     
+      if @tex == null
+        ###
+        map = THREE.ImageUtils.loadTexture("ico/"+g.user+"_"+dsg+"_Rotor.png", {}, (d) =>
+          g.ve.render()
+        )
+        ###
+        @shp = new Shapes.Rectangle(0x239f5a, x, y, z, 25, 25)
+        @shp.obj3d.userData = this
+      else
+        @setIcon()
 
-      @shp.obj3d.userData = this
-      @shp.obj3d.lines = []
-      @shp.obj3d.linep = new THREE.Vector3(x, y, 5)
-      @shp.obj3d.position.set(x,y,z)
-      @shp.obj3d.scale.set(30, 30, 1.0)
-      @shp.obj3d.select = () ->
-      ###
-      @shp = new Shapes.Icon(map, x, y, z, 30)
-      @shp.obj3d.userData = this
 
       @model = null
       if @parent?
@@ -426,6 +396,16 @@ BaseElements = {
       }
       @links = []
       @args = []
+
+    setIcon: (x=0, y=0, z=0) =>
+      material = new THREE.SpriteMaterial({
+        map: @tex,
+        #alphaTest: 0.5,
+        depthTest: false,
+        depthWrite: false
+      })
+      @shp = new Shapes.Icon(@tex, x, y, z)
+      @shp.obj3d.userData = this
 
     addArgs: () ->
       _args = @model.props.params
@@ -762,11 +742,11 @@ class Surface
 
   addElement: (ef, x, y) ->
     e = null
-    #if ef instanceof Phyo and ef.sprite
+    if ef instanceof Phyo and ef.tex?
       #ef.shp.obj3d.userData = null
-      #e = new ef.constructor(@baseRect, x, y, 50, { obj3d: ef.shp.obj3d })
-    #else
-    e = new ef.constructor(@baseRect, x, y, 50)
+      e = new ef.constructor(@baseRect, x, y, 50, ef.tex)
+    else
+      e = new ef.constructor(@baseRect, x, y, 50)
     e.props.name = @ve.namemanager.getName(e.constructor.name.toLowerCase())
     e.id.name = e.props.name
     e.props.design = dsg
@@ -1084,6 +1064,7 @@ class VisualEnvironment
     #@height = @container.offsetHeight
     @cwidth = @scontainer.offsetWidth #200
     @cheight = @scontainer.offsetHeight
+    @iconCache = {}
     
     #@l = Math.max(@width, @height)
     #@l = 2000
@@ -1587,20 +1568,6 @@ class Addie
     @loadModels(m.models)
     @loadElements(m.elements)
     @loadSimSettings(m.simSettings)
-
-
-    ###
-    map = THREE.ImageUtils.loadTexture("ico/murphy_coho_Rotor.png")
-    material = new THREE.SpriteMaterial({map: map, alphaTest: 0.5, depthTest: false, depthWrite: false})
-    sprite = new THREE.Sprite(material)
-    sprite.position.set(300, 300, 70)
-    sprite.scale.set(30, 30, 1.0)
-    @ve.surface.baseRect.obj3d.add(sprite)
-    @ve.render()
-    @ve.render()
-    #@ve.scene.add(sprite)
-    ###
-    
     true
 
   setProps: (x, p) =>
@@ -2085,7 +2052,7 @@ class PropsEditor
         continue if k == 'args'
         continue if k == 'equations'
         continue if k == 'bindings'
-        continue if k == 'image'
+        continue if k == 'icon'
         continue if k == 'name' and @elements.length > 1
         addProp(ps, k, v)
 
