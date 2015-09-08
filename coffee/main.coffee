@@ -257,6 +257,8 @@ BaseElements = {
         capacity: 1000
       }
     ifname
+
+  
  
   #The Computer class is a representation of a computer
   Computer: class Computer
@@ -1249,6 +1251,18 @@ class SurfaceView
     for p in @panes
       p.camera.position.z = 200
 
+  mouseHits: (eve) ->
+    @mouseh.updateMouse(eve)
+    @raycaster.setFromCamera(@mouseh.pos, @mouseh.icam)
+    ixs = @raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
+    ixs
+
+  baseRectIx: (eve) ->
+    @mouseh.updateMouse(eve)
+    @raycaster.setFromCamera(@mouseh.pos, @mouseh.icam)
+    bix = @raycaster.intersectObject(@ve.surface.baseRect.obj3d)
+    bix
+
   doRender: () ->
     for p in @panes
       vp = p.viewport
@@ -2160,9 +2174,7 @@ class LinkingHandler
   constructor: (@mh) ->
 
   handleDown0: (event) ->
-    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
-    ixs = @mh.sv.raycaster.intersectObjects(
-              @mh.sv.surface.baseRect.obj3d.children)
+    ixs = @mh.sv.mouseHits(event)
 
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
@@ -2178,22 +2190,9 @@ class LinkingHandler
         pos0, pos1, 0, 0, 5
       )
       @mh.sv.surface.elements.push(@mh.placingLink)
-      @mh.placingLink.props.name = @mh.sv.ve.namemanager.getName("link")
-      @mh.placingLink.id.name = @mh.placingLink.props.name
-      
-      ifname = ""
-      if ixs[0].object.userData.props.interfaces?
-        ifname = "ifx"+Object.keys(ixs[0].object.userData.props.interfaces).length
-        ixs[0].object.userData.props.interfaces[ifname] = {
-          name: ifname,
-          latency: 0,
-          capacity: 1000
-        }
-      @mh.placingLink.endpoint[0] = ixs[0].object.userData
-      @mh.placingLink.ep_ifx[0] = ifname
-      @mh.placingLink.endpoint[0].links.push(@mh.placingLink)
-
-      ixs[0].object.lines.push(@mh.placingLink.ln)
+      BaseElements.initName(@mh.placingLink, "link")
+     
+      @mh.placingLink.linkEndpoint(0, ixs[0].object.userData)
 
       @mh.sv.container.onmousemove = (eve) => @handleMove1(eve)
       @mh.sv.container.onmousedown = (eve) => @handleDown1(eve)
@@ -2201,35 +2200,20 @@ class LinkingHandler
       console.log "! link0 miss"
 
   handleDown1: (event) ->
-    @mh.sv.raycaster.setFromCamera(@mh.pos, @mh.icam)
-    ixs = @mh.sv.raycaster.intersectObjects(
-                @mh.sv.surface.baseRect.obj3d.children)
+    ixs = @mh.sv.mouseHits(event)
+
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! link1 " + e.constructor.name
       @mh.placingLink.ln.geom.vertices[1] = ixs[0].object.linep
-      ixs[0].object.lines.push(@mh.placingLink.ln)
-      
-      ifname = ""
-      if ixs[0].object.userData.props.interfaces?
-        ifname = "ifx"+Object.keys(ixs[0].object.userData.props.interfaces).length
-        ixs[0].object.userData.props.interfaces[ifname] = {
-          name: ifname,
-          latency: 0,
-          capacity: 1000
-        }
-      @mh.placingLink.endpoint[1] = ixs[0].object.userData
-      @mh.placingLink.ep_ifx[1] = ifname
-      @mh.placingLink.endpoint[1].links.push(@mh.placingLink)
+
+      @mh.placingLink.linkEndpoint(1, ixs[0].object.userData)
 
       @mh.sv.surface.updateLink(@mh.placingLink.ln)
-      @mh.placingLink.ifInternetToWanLink()
-      @mh.placingLink.ifPhysicalToPlink()
-      @mh.placingLink.setEndpointData()
+      @mh.placingLink.typeResolve()
       @mh.sv.render()
 
       @mh.sv.ve.addie.update([@mh.placingLink])
-
 
       @mh.sv.container.onmousemove = null
       @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
@@ -2241,10 +2225,7 @@ class LinkingHandler
     @mh.updateMouse(event)
     
   handleMove1: (event) ->
-    #TODO replace me with baseRectIx when that is ready
-    @mh.updateMouse(event)
-    @mh.sv.raycaster.setFromCamera(@.mh.pos, @mh.icam)
-    bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
+    bix = @mh.sv.baseRectIx(event)
     if bix.length > 0
       @mh.sv.scene.updateMatrixWorld()
       @mh.placingLink.ln.geom.vertices[1].x = bix[bix.length - 1].point.x
@@ -2347,7 +2328,7 @@ doMultiplink = (sel) =>
 class MultiLinker
   constructor: (@ve, @sel) ->
     console.log("multiplink")
-    console.log(sel)
+    console.log(@sel)
 
     @ve.sview.container.style.cursor = "crosshair"
     @ve.sview.container.onmousedown = (eve) => @handleDown(eve)
@@ -2363,9 +2344,7 @@ class MultiLinker
       true
 
   handleDown: (eve) =>
-    @ve.sview.mouseh.updateMouse(eve)
-    @ve.sview.raycaster.setFromCamera(@ve.sview.mouseh.pos, @ve.sview.mouseh.icam)
-    ixs = @ve.sview.raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
+    ixs = @ve.sview.mouseHits(eve)
 
     if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
