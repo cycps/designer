@@ -55,8 +55,10 @@ root.vsplit_mdown = (event) =>
   g.ve.splitView.vdown(event)
 
 root.vz_keydown = (event) =>
-  #g.ve.keyh.ondown(event)
-  g.ve.sview.keyh.ondown(event)
+  g.ve.keyh.ondown(event)
+
+root.vz_keyup = (event) =>
+  g.ve.keyh.onup(event)
 
 root.vz_wheel = (event, idx) =>
   #g.ve.mouseh.onwheel(event)
@@ -262,7 +264,7 @@ BaseElements = {
       @props = {
         name: "computer0",
         sys: "root",
-        os: "Ubuntu1404-54-STD",
+        os: "Ubuntu1404-64-STD",
         start_script: "",
         interfaces: {},
         sshcmd: ""
@@ -821,6 +823,11 @@ class Surface
     @addIfContains(box2, x, xs) for x in @elements
     xs
 
+  getSelected: () ->
+    xs = []
+    xs.push(x.userData) for x in @selectGroup.children
+    xs
+
   
   updateLink: (ln) ->
     ln.geom.verticesNeedUpdate = true
@@ -1091,6 +1098,7 @@ class VisualEnvironment
       1, 1000)
 
     
+    @keyh = new KeyHandler(this)
     @sview = new SurfaceView(this, @sc0)
 
     @srenderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
@@ -1104,7 +1112,6 @@ class VisualEnvironment
     @scamera.position.z = 200
     @scamera.zoom = 1
     #@mouseh = new MouseHandler(this)
-    @keyh = new KeyHandler(this)
     #@raycaster = new THREE.Raycaster()
     #@raycaster.linePrecision = 10
     @namemanager = new NameManager(this)
@@ -1246,7 +1253,7 @@ class SurfaceView
     #@renderer.setPixelRatio(window.devicePixelRatio)
 
     @mouseh = new MouseHandler(this)
-    @keyh = new KeyHandler(this.ve)
+    #@keyh = new KeyHandler(this.ve)
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
     @container.appendChild(@renderer.domElement)
@@ -1966,12 +1973,16 @@ class SurfaceElementSelectHandler
     console.log "! surface select -- " + e.constructor.name
     console.log "current selection"
     console.log @mh.sv.surface.selectGroup
-    if not ixs[0].object.userData.glowBubble?
+    console.log("multiselect: " + @mh.sv.ve.keyh.multiselect)
+    if not ixs[0].object.userData.glowBubble? && not @mh.sv.ve.keyh.multiselect
       @mh.sv.surface.clearSelection()
-    if @mh.sv.surface.selectGroup.children.length == 0
+    @mh.sv.surface.selectObj(e)
+    if @mh.sv.surface.selectGroup.children.length == 1
       @mh.sv.ve.propsEditor.elements = [e]
       @mh.sv.ve.propsEditor.show()
-    @mh.sv.surface.selectObj(e)
+    else
+      @mh.sv.ve.propsEditor.elements = @mh.sv.surface.getSelected()
+      @mh.sv.ve.propsEditor.show()
 
     if e instanceof BaseElements.Phyo
       @mh.sv.ve.equationEditor.show(e.model)
@@ -2431,6 +2442,7 @@ class MouseHandler
 class KeyHandler
 
   constructor: (@ve) ->
+    @multiselect = false
 
   ondown: (event) =>
     keycode = window.event.keyCode || event.which
@@ -2446,6 +2458,16 @@ class KeyHandler
     else if(keycode == 8 || keycode == 46)
       @ve.surface.deleteSelection()
       event.preventDefault()
+    else if(keycode == 16)
+      console.log("multiselect start")
+      @multiselect = true
+      true
 
+  onup: (event) =>
+    keycode = window.event.keyCode || event.which
     
+    if(keycode == 16)
+      console.log("multiselect end")
+      @multiselect = false
+      true
 
