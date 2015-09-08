@@ -2163,7 +2163,9 @@ class LinkingHandler
       @mh.placingLink.endpoint[0] = ixs[0].object.userData
       @mh.placingLink.ep_ifx[0] = ifname
       @mh.placingLink.endpoint[0].links.push(@mh.placingLink)
+
       ixs[0].object.lines.push(@mh.placingLink.ln)
+
       @mh.sv.container.onmousemove = (eve) => @handleMove1(eve)
       @mh.sv.container.onmousedown = (eve) => @handleDown1(eve)
     else
@@ -2324,10 +2326,8 @@ class MultiLinker
 
     @links = []
     for s in @sel
-      l = new BaseElements.Link(@ve.surface.baseRect,
-        s.shp.obj3d.linep,
-        tgtP, 0, 0, 5
-      )
+      l = new BaseElements.Link(@ve.surface.baseRect, s.shp.obj3d.linep, @tgtP,
+                                0, 0, 5)
       l.props.name = @ve.namemanager.getName("link")
       l.id.name = l.props.name
 
@@ -2343,18 +2343,23 @@ class MultiLinker
       l.endpoint[0] = s
       l.endpoint[0].links.push(l)
       l.ep_ifx[0] = ifname
+      s.shp.obj3d.lines.push(l.ln)
       @links.push(l)
       true
 
   handleDown: (eve) =>
+    @ve.sview.mouseh.updateMouse(eve)
     @ve.sview.raycaster.setFromCamera(@ve.sview.mouseh.pos, @ve.sview.mouseh.icam)
     ixs = @ve.sview.raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
-    if ixs.length >0 and ixs[0].object.userData.cyjs?
+
+    if ixs.length > 0 and ixs[0].object.userData.cyjs?
       e = ixs[0].object.userData
       console.log "! multilink1 " + e.constructor.name
+      @tgtP = ixs[0].object.linep
+
       for l in @links
         l.ln.geom.vertices[1] = ixs[0].object.linep
-        ixs[0].object.lines.push(l)
+        ixs[0].object.lines.push(l.ln)
 
         ifname = ""
         if ixs[0].object.userData.props.interfaces?
@@ -2367,18 +2372,20 @@ class MultiLinker
         l.endpoint[1] = ixs[0].object.userData
         l.ep_ifx[1] = ifname
         l.endpoint[1].links.push(l)
-        @ve.surface.updateLink(l)
+        @ve.surface.updateLink(l.ln)
         l.ifInternetToWanLink()
         l.ifPhysicalToPlink()
         l.setEndpointData()
         @ve.sview.render()
         @ve.addie.update([l])
+      @ve.sview.container.style.cursor = "default"
+      @ve.sview.container.onmousedown = (eve) => @ve.sview.mouseh.baseDown(eve)
+      true
     else
       console.log "! multilink miss"
+      true
 
 
-    @ve.sview.container.style.cursor = "default"
-    @ve.sview.container.onmousedown = (eve) => @ve.sview.mouseh.baseDown(eve)
 
 
 class KeyHandler
