@@ -17,7 +17,6 @@ initViz = () =>
   g.ve.ebox = new StaticElementBox(g.ve, 120, g.ve.cheight/2 - 65)
   mh = g.ve.cheight - 167
   g.ve.mbox = new ModelBox(g.ve, mh, (g.ve.cheight - 140)/2 - mh/2.0 - 60)
-  #g.ve.surface = new Surface(g.ve)
   g.ve.datgui = null
   g.ve.render(g.ve)
 
@@ -32,8 +31,6 @@ root.go = ->
     dsg = g.xp
     console.log("the xp is " + g.xp)
     initViz()
-    #loadXP()
-    #g.ve.addie.load()
     g.ve.addie.init()
     true
   ).fail () ->
@@ -43,9 +40,6 @@ root.go = ->
 
 #Global event handlers
 root.vz_mousedown = (event, idx) ->
-  #g.ve.mouseh.ondown(event)
-  #g.ve.sview = g.ve.surfaceViews[idx]
-  #g.ve.surfaceViews[idx].mouseh.ondown(event)
   g.ve.sview.mouseh.ondown(event)
 
 root.hsplit_mdown = (event) =>
@@ -61,8 +55,6 @@ root.vz_keyup = (event) =>
   g.ve.keyh.onup(event)
 
 root.vz_wheel = (event, idx) =>
-  #g.ve.mouseh.onwheel(event)
-  #g.ve.sview = g.ve.surfaceViews[idx]
   g.ve.sview.mouseh.onwheel(event)
 
 root.run = (event) =>
@@ -142,8 +134,6 @@ Shapes = {
         {
          color: color,
          linewidth: 3
-         #transparent: false,
-         #opacity: 1
         }
       )
       @geom = new THREE.Geometry()
@@ -159,8 +149,6 @@ Shapes = {
 
   Icon: class Icon
     constructor: (@texture, x, y, z) ->
-      #@texture = _texture.clone()
-      #@texture.needsUpdate = true
       @material = new THREE.SpriteMaterial({
         map: @texture,
         depthTest: false,
@@ -343,7 +331,6 @@ BaseElements = {
         @shp.obj3d.position.z)
       @shp = _shp
       @shp.obj3d.userData = this
-      #g.ve.iconCache[mdl] = tex
       @parent.obj3d.add(@shp.obj3d)
       g.ve.render()
       @tex = tex
@@ -490,8 +477,6 @@ BaseElements = {
       @shp = new Shapes.Circle(0x23549F, x, y, z, 15)
       @shp.obj3d.userData = this
       @parent.obj3d.add(@shp.obj3d)
-      #TODO you are here, all objects with changable props should have a props 
-      #object
       @props = {
         name: "router0",
         sys: "root",
@@ -571,7 +556,6 @@ BaseElements = {
         design: dsg
       }
 
-      #TODO if ln itself is clicked on this messes up selection logic 
       if isIcon
         @shp = new Shapes.Rectangle(@parent.material.color, x, y, z, 25, 25)
         @shp.obj3d.userData = this
@@ -590,9 +574,6 @@ BaseElements = {
 
     isIfxPhysical: (i) ->
       @endpoint[i] instanceof Phyo
-      #@endpoint[i] instanceof Sax
-    
-
 
     applyWanProps: ->
       @props.capacity = 100
@@ -674,11 +655,8 @@ BaseElements = {
 class ElementBox
   #Constructs an ElementBox object given a @ve visual environment
   constructor: (@ve, @height, @y) ->
-    #@height = @ve.height - 10
     @width = 75
     @x = -@ve.cwidth/2  + @width / 2 + 5
-    #@x = 0
-    #@y =  0
     @z = 5
     @box = new Shapes.Rectangle(0x404040, @x, @y, @z, @width, @height)
     @box.obj3d.userData = this
@@ -727,15 +705,12 @@ class ModelBox extends ElementBox
     @ve.addie.update([m])
 
   addBaseElements: ->
-    #@addElement((box, x, y) -> new BaseElements.Model(box, x, y, 5))
 
 #The Surface holds visual representations of Systems and Elements
 #aka the majority of the screen
 class Surface
   #Constructs a Surface object given a @ve visual environment
   constructor: (@ve) ->
-    #@height = @ve.l
-    #@width = @ve.l
     @width = 5000
     @height = 5000
     @baseRect = new Shapes.Rectangle(0x262626, 0, 0, 0, @width, @height)
@@ -861,12 +836,6 @@ class Surface
       o.linep.x += p.x
       o.linep.y += p.y
 
-    ###
-    if o.userData.glowBubble?
-      o.userData.glowBubble.position.x += p.x
-      o.userData.glowBubble.position.y += p.y
-    ###
-
     if o.lines?
       @updateLink(ln) for ln in o.lines
     true
@@ -988,25 +957,15 @@ class Surface
         gs.userData = obj
         obj.glowBubble = gs
         @selectGroup.add(gs)
-
-      ###
-      if obj.shp?
-        @selectGroup.add(obj.shp.obj3d)
-      if obj.ln?
-        @selectGroup.add(obj.ln.obj3d)
-      ###
       
       @ve.render()
     true
 
   clearSelection: (clearProps = true) ->
 
-    #delete gb.userData.glowBubble for gb in @selectGroup.children
-
     for x in @selectGroup.children
       if x.userData.glowBubble?
         delete x.userData.glowBubble
-        #@baseRect.obj3d.children.push(x)
 
     @selectGroup.children = []
     @clearPropsGUI() if clearProps
@@ -1048,7 +1007,6 @@ class NameManager
         @names[s]++
         n = s + @names[s]
 
-    #s + @names[s]
     n
 
 class SimSettings
@@ -1073,25 +1031,10 @@ class VisualEnvironment
     @sscene = new THREE.Scene()
     @pscene = new THREE.Scene()
     @surface = new Surface(this)
-    #@surfaceViews[1].renderer.setClearColor(0x363636, 1)
-    #@width = @container.offsetWidth
-    #@height = @container.offsetHeight
     @cwidth = @scontainer.offsetWidth #200
     @cheight = @scontainer.offsetHeight
     @iconCache = {}
     
-    #@l = Math.max(@width, @height)
-    #@l = 2000
-    ###
-    @camera = new THREE.OrthographicCamera(
-      @width / -2, @width / 2,
-      @height / 2, @height / -2,
-      1, 1000)
-    ###
-    #@camera = new THREE.OrthographicCamera(
-    #  @l/-2, @l/2,
-    #  @l/2, @l/-2,
-    #  1, 1000)
     @scamera = new THREE.OrthographicCamera(
       @cwidth / -2, @cwidth / 2,
       @cheight / 2, @cheight / -2,
@@ -1107,15 +1050,9 @@ class VisualEnvironment
     @alpha = 1
     @srenderer.setClearColor(@clear, @alpha)
     @scontainer.appendChild(@srenderer.domElement)
-    #@camera.position.z = 200
-    #@camera.zoom = 1
     @scamera.position.z = 200
     @scamera.zoom = 1
-    #@mouseh = new MouseHandler(this)
-    #@raycaster = new THREE.Raycaster()
-    #@raycaster.linePrecision = 10
     @namemanager = new NameManager(this)
-    #@xpcontrol = new ExperimentControl(this)
     @addie = new Addie(this)
     @propsEditor = new PropsEditor(this)
     @equationEditor = new EquationEditor(this)
@@ -1141,11 +1078,7 @@ class VisualEnvironment
     console.log("vsplit")
 
   render: ->
-    #sv.doRender() for sv in @surfaceViews
     @sview.doRender()
-    #@renderer.clear()
-    #@renderer.clearDepth()
-    #@renderer.render(@scene, @camera)
     
     @srenderer.clear()
     @srenderer.clearDepth()
@@ -1198,11 +1131,6 @@ class SplitView
     $("#diagnosticsPanel").css("top", (event.clientY+5)+"px")
     $("#hsplitter").css("top", event.clientY+"px")
 
-
-
-
-
-
   vdown: (event) =>
     $("#metasurface").mouseup(@vup)
     $("#metasurface").mousemove(@vmove)
@@ -1250,10 +1178,8 @@ class SurfaceView
     @renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
     @renderer.setSize(@cwidth, @cheight)
     @renderer.setClearColor(@clear, @alpha)
-    #@renderer.setPixelRatio(window.devicePixelRatio)
 
     @mouseh = new MouseHandler(this)
-    #@keyh = new KeyHandler(this.ve)
     @raycaster = new THREE.Raycaster()
     @raycaster.linePrecision = 10
     @container.appendChild(@renderer.domElement)
@@ -1293,21 +1219,6 @@ class SurfaceView
 
     for p in @panes
       p.camera.position.z = 200
-
-  ###
-  reInitCamera: () ->
-    @cwidth = @container.offsetWidth
-    @cheight = @container.offsetHeight
-    #@l = Math.max(@cwidth, @cheight)
-    @renderer.setSize(@l, @l)
-    @renderer.setClearColor(@clear, @alpha)
-    @camera.left = @l/-2
-    @camera.right = @l/2
-    @camera.top = @l/2
-    @camera.bottom = @l/-2
-    @camera.updateProjectionMatrix()
-    @doRender()
-  ###
 
   doRender: () ->
     for p in @panes
@@ -1590,7 +1501,6 @@ class Addie
       if m.props.icon != ''
         do (m) => #capture m-ref before it gets clobbered by loop
           @ve.loadIcon(m.props.name, (tex) ->
-            #tex = @ve.iconCache[m.props.name]
             _tex = tex.clone()
             _tex.needsUpdate = true
             m.setIcon(_tex)
@@ -1609,8 +1519,6 @@ class Addie
 
   doLoad: (m) =>
     @loadModels(m.models)
-    #while(@latchup > @latchdown)
-    #  console.log(@latchdown)
     @loadElements(m.elements)
     @loadSimSettings(m.simSettings)
     true
@@ -1725,8 +1633,6 @@ class Addie
 
     l.endpoint[0] = a
     l.endpoint[1] = b
-    #l.ep_ifx[0] = x.endpoints[0].ifname
-    #l.ep_ifx[1] = x.endpoints[1].ifname
 
     l.applyPhysicalProps()
     @setProps(l, x)
@@ -1765,7 +1671,6 @@ class Addie
     $.get "/addie/"+dsg+"/design/run", (data) =>
       console.log("run result: ")
       console.log(data)
-    #window.open(location.origin + "/results.html?xp=" + dsg)
 
   materialize: () =>
     if @mstate.up
@@ -1802,8 +1707,7 @@ class EBoxSelectHandler
 
   test: (ixs) ->
     ixs.length > 0 and
-    ixs[ixs.length - 1].object.userData instanceof StaticElementBox #and
-    #ixs[0].object.userData.cyjs?
+    ixs[ixs.length - 1].object.userData instanceof StaticElementBox
 
   handleDown: (ixs) ->
     @mh.sv.surface.clearSelection()
@@ -1815,6 +1719,7 @@ class EBoxSelectHandler
       #     this way many things may be linked without going back to the icon
       if e instanceof Link
         console.log "! linking objects"
+        @mh.sv.container.style.cursor = "crosshair"
         @mh.placingObject = null
         @mh.sv.container.onmousemove = (eve) => @mh.linkingH.handleMove0(eve)
         @mh.sv.container.onmousedown = (eve) => @mh.linkingH.handleDown0(eve)
@@ -1856,7 +1761,6 @@ class EBoxSelectHandler
     bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
 
     if bix.length > 0
-      #ox = @mh.placingObject.shp.geom.boundingSphere.radius
       @mh.sv.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
       @mh.sv.render()
 
@@ -1868,8 +1772,7 @@ class MBoxSelectHandler
 
   test: (ixs) ->
     ixs.length > 0 and
-    ixs[ixs.length - 1].object.userData instanceof ModelBox #and
-    #ixs[0].object.userData.cyjs?
+    ixs[ixs.length - 1].object.userData instanceof ModelBox
   
   handleDown: (ixs) ->
     @mh.sv.surface.clearSelection()
@@ -1924,16 +1827,13 @@ class MBoxSelectHandler
     @instance = null
   
   handleMove0: (event) ->
-    #console.log('mbox move0')
     @instance = @mh.makePlacingObject(@model.instantiate(null, 0, 0, 0, 25, 25))
-    #@instance.props.model = @model.props.name
     @instance.model = @model
     @instance.addArgs()
     @model.instances.push(@instance)
     @mh.sv.container.onmousemove = (eve) => @handleMove1(eve)
 
   handleMove1: (event) ->
-    #console.log('mbox move1')
     @mh.updateMouse(event)
     @mh.sv.ve.propsEditor.hide()
     @mh.sv.ve.equationEditor.hide()
@@ -1968,7 +1868,6 @@ class SurfaceElementSelectHandler
 
     @mh.updateMouse(event)
     @start.copy(@mh.pos)
-    #@last.copy(@mh.pos)
     e = ixs[0].object.userData
     console.log "! surface select -- " + e.constructor.name
     console.log "current selection"
@@ -1994,13 +1893,10 @@ class SurfaceElementSelectHandler
 
   applyGroupMove: () ->
     for x in @mh.sv.surface.selectGroup.children
-      #p = @mh.pos.sub(@last)
       p = new THREE.Vector3(@p1.x - @p0.x , @p1.y - @p0.y, @p0.z)
       if x.userData.shp?
         @mh.sv.surface.moveObjectRelative(x.userData.shp.obj3d, p)
       @mh.sv.surface.moveObjectRelative(x, p)
-      #x.position.x += @ve.surface.selectGroup.position.x
-      #x.position.y += @ve.surface.selectGroup.position.y
 
   updateGroupMove: () ->
     updates = []
@@ -2016,7 +1912,6 @@ class SurfaceElementSelectHandler
     if @mh.placingObject.shp?
       @mh.placingObject.props.position = @mh.placingObject.shp.obj3d.position
       if @start.distanceTo(@end) > 0
-        #@mh.ve.addie.update([@mh.placingObject])
         @updateGroupMove()
 
     #@applyGroupMove()
@@ -2032,13 +1927,9 @@ class SurfaceElementSelectHandler
     @p1.copy(bix[0].point)
 
     if bix.length > 0
-      #ox = @mh.placingObject.shp.geom.boundingSphere.radius
-      #@mh.ve.surface.moveObject(@mh.placingObject.shp.obj3d, bix[0].point)
-      #@mh.ve.surface.moveObject(@mh.ve.surface.selectGroup, bix[0].point)
       @applyGroupMove()
       @mh.sv.render()
 
-    #@last.copy(@mh.pos)
     @p0.copy(@p1)
 
 #TODO, me thinks that react.js orangular.js is meant to deal with precisely 
@@ -2222,8 +2113,6 @@ class SurfaceSpaceSelectHandler
     @mh.sv.container.onmousemove = null
     @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
     @mh.sv.container.onmouseup = null
-    #@mh.ve.surface.clearSelector()
-    #@mh.ve.surface.clearSelection()
     @mh.sv.render()
 
   handleMove: (event) ->
@@ -2313,12 +2202,12 @@ class LinkingHandler
 
       @mh.sv.container.onmousemove = null
       @mh.sv.container.onmousedown = (eve) => @mh.baseDown(eve)
+      @mh.sv.container.style.cursor = "default"
     else
       console.log "! link1 miss"
 
   handleMove0: (event) ->
     @mh.updateMouse(event)
-    #console.log "! lm0"
     
   handleMove1: (event) ->
     #TODO replace me with baseRectIx when that is ready
@@ -2326,7 +2215,6 @@ class LinkingHandler
     @mh.sv.raycaster.setFromCamera(@.mh.pos, @mh.icam)
     bix = @mh.sv.raycaster.intersectObject(@mh.sv.surface.baseRect.obj3d)
     if bix.length > 0
-      #console.log "! lm1"
       @mh.sv.scene.updateMatrixWorld()
       @mh.placingLink.ln.geom.vertices[1].x = bix[bix.length - 1].point.x
       @mh.placingLink.ln.geom.vertices[1].y = bix[bix.length - 1].point.y
@@ -2359,8 +2247,6 @@ class MouseHandler
     @apane = @sv.getPane(new THREE.Vector2(event.layerX, event.layerY))
     @icam = @apane.camera
 
-    #@pos.x =  (event.layerX / (@sv.cwidth/2) ) * 2 - 1
-    #@pos.y = -(event.layerY / @sv.cheight ) * 2 + 1
     if @apane.id == 1
       sr = @sv.ve.splitView.splitRatio()
     else
@@ -2371,7 +2257,6 @@ class MouseHandler
     
     @spos.x =  (event.layerX / @sv.ve.scontainer.offsetWidth ) * 2 - 1
     @spos.y = -(event.layerY / @sv.ve.scontainer.offsetHeight) * 2 + 1
-    #console.log(@pos.x + "," + @pos.y)
 
   baseRectIx: (event) ->
     @updateMouse(event)
@@ -2402,25 +2287,11 @@ class MouseHandler
     @sv.ve.propsEditor.hide()
 
     #get the list of objects the mouse click intersected
-    #@ve.scene.updateMatrixWorld()
     @updateMouse(event)
     console.log(@pos)
 
     #delegate the handling of the event to one of the handlers
     #check the model boxes first
-
-    ###
-    @ve.raycaster.setFromCamera(@spos, @ve.scamera)
-    sixs = @ve.raycaster.intersectObjects(@ve.sscene.children, true)
-    if      @eboxSH.test(sixs) then @eboxSH.handleDown(sixs)
-    else if @mboxSH.test(sixs) then @mboxSH.handleDown(sixs)
-    else
-      @ve.raycaster.setFromCamera(@pos, @ve.sview.camera)
-      ixs = @ve.raycaster.intersectObjects(@ve.scene.children, true)
-
-      if @surfaceESH.test(ixs) then @surfaceESH.handleDown(ixs)
-      else if @surfaceSSH.test(ixs) then @surfaceSSH.handleDown(ixs)
-    ###
 
     if event.which == 1
       @sv.raycaster.setFromCamera(@spos, @sv.ve.scamera)
@@ -2447,21 +2318,20 @@ class KeyHandler
   ondown: (event) =>
     keycode = window.event.keyCode || event.which
 
-    if(keycode == 74)
-      @ve.zoomin()
-    else if(keycode == 75)
-      @ve.zoomout()
-    else if(keycode == 72)
-      @ve.hsplit()
-    else if(keycode == 86)
-      @ve.vsplit()
-    else if(keycode == 8 || keycode == 46)
+    if(keycode == 8 || keycode == 46)
       @ve.surface.deleteSelection()
       event.preventDefault()
     else if(keycode == 16)
       console.log("multiselect start")
       @multiselect = true
       true
+    else if(keycode == 67)
+      @ve.sview.container.style.cursor = "crosshair"
+      @ve.sview.container.onmousemove = (eve) =>
+        @ve.sview.mouseh.linkingH.handleMove0(eve)
+      @ve.sview.container.onmousedown = (eve) =>
+        @ve.sview.mouseh.linkingH.handleDown0(eve)
+
 
   onup: (event) =>
     keycode = window.event.keyCode || event.which
