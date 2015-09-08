@@ -2310,6 +2310,34 @@ class MouseHandler
 
     true
 
+doMultiplink = (sel) =>
+
+
+class MultiLinker
+  constructor: (@ve, @sel) ->
+    console.log("multiplink")
+    console.log(sel)
+
+    @ve.sview.container.style.cursor = "crosshair"
+    @ve.sview.container.onmousedown = (eve) => @handleDown(eve)
+    @tgtP = new THREE.Vector3(0,0,0)
+
+    @links = []
+    for s in @sel
+      l = new BaseElements.Link(@ve.surface.baseRect,
+        s.shp.obj3d.linep,
+        tgtP, 0, 0, 5
+      )
+      l.props.name = @ve.namemanager.getName("link")
+      l.id.name = l.props.name
+      #TODO create the interface (2156)
+      @links.push(l)
+
+  handleDown: (eve) =>
+    @ve.sview.container.style.cursor = "default"
+    @ve.sview.container.onmousedown = (eve) => @ve.sview.mouseh.baseDown(eve)
+
+
 class KeyHandler
 
   constructor: (@ve) ->
@@ -2326,11 +2354,16 @@ class KeyHandler
       @multiselect = true
       true
     else if(keycode == 67)
-      @ve.sview.container.style.cursor = "crosshair"
-      @ve.sview.container.onmousemove = (eve) =>
-        @ve.sview.mouseh.linkingH.handleMove0(eve)
-      @ve.sview.container.onmousedown = (eve) =>
-        @ve.sview.mouseh.linkingH.handleDown0(eve)
+      xs = @ve.surface.getSelected()
+      if xs.length == 0
+        @ve.sview.container.style.cursor = "crosshair"
+        @ve.sview.container.onmousemove = (eve) =>
+          @ve.sview.mouseh.linkingH.handleMove0(eve)
+        @ve.sview.container.onmousedown = (eve) =>
+          @ve.sview.mouseh.linkingH.handleDown0(eve)
+      else
+        ml = new MultiLinker(@ve, xs)
+        true
 
 
   onup: (event) =>
