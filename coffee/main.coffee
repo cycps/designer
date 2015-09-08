@@ -242,6 +242,21 @@ BaseElements = {
     x.props.sshcmd =
       'ssh -A -t '+g.user+'@users.isi.deterlab.net '+
       'ssh -A '+x.props.name+'.'+g.user+'-'+dsg+'.cypress'
+
+  initName: (x, n) =>
+    x.props.name = g.ve.namemanager.getName(n)
+    x.id.name = x.props.name
+
+  addInterface: (x) =>
+    ifname = ""
+    if x.props.interfaces?
+      ifname = "ifx"+Object.keys(x.props.interfaces).length
+      x.props.interfaces[ifname] = {
+        name: ifname,
+        latency: 0,
+        capacity: 1000
+      }
+    ifname
  
   #The Computer class is a representation of a computer
   Computer: class Computer
@@ -603,6 +618,15 @@ BaseElements = {
         @ln.material.color = new THREE.Color(0x123456)
         @ln.geom.colorsNeedUpdate = true
 
+    linkEndpoint: (i, x) ->
+      ifname = BaseElements.addInterface(x)
+      x.links.push(this)
+      x.shp.obj3d.lines.push(@ln)
+      @ln.geom.vertices[i] = x.shp.obj3d.linep
+      @endpoint[i] = x
+      @ep_ifx[i] = ifname
+
+
     setEndpointData: ->
       @props.endpoints[0].name = @endpoint[0].props.name
       @props.endpoints[0].sys = @endpoint[0].props.sys
@@ -637,6 +661,11 @@ BaseElements = {
       else
         @ln.material.color = new THREE.Color(0x123456)
         @ln.geom.colorsNeedUpdate = true
+
+    typeResolve: ->
+      @ifInternetToWanLink()
+      @ifPhysicalToPlink()
+      @setEndpointData()
     
     showProps: (f) ->
       f.add(@props, 'name')
@@ -2328,22 +2357,8 @@ class MultiLinker
     for s in @sel
       l = new BaseElements.Link(@ve.surface.baseRect, s.shp.obj3d.linep, @tgtP,
                                 0, 0, 5)
-      l.props.name = @ve.namemanager.getName("link")
-      l.id.name = l.props.name
-
-      ifname = ""
-      if s.props.interfaces?
-        ifname = "ifx"+Object.keys(s.props.interfaces).length
-        s.props.interfaces[ifname] = {
-          name: ifname,
-          latency: 0,
-          capacity: 1000
-        }
-     
-      l.endpoint[0] = s
-      l.endpoint[0].links.push(l)
-      l.ep_ifx[0] = ifname
-      s.shp.obj3d.lines.push(l.ln)
+      BaseElements.initName(l, "link")
+      l.linkEndpoint(0, s)
       @links.push(l)
       true
 
@@ -2358,26 +2373,12 @@ class MultiLinker
       @tgtP = ixs[0].object.linep
 
       for l in @links
-        l.ln.geom.vertices[1] = ixs[0].object.linep
-        ixs[0].object.lines.push(l.ln)
-
-        ifname = ""
-        if ixs[0].object.userData.props.interfaces?
-          ifname = "ifx"+Object.keys(ixs[0].object.userData.props.interfaces).length
-          ixs[0].object.userData.props.interfaces[ifname] = {
-            name: ifname,
-            latency: 0,
-            capacity: 1000
-          }
-        l.endpoint[1] = ixs[0].object.userData
-        l.ep_ifx[1] = ifname
-        l.endpoint[1].links.push(l)
+        l.linkEndpoint(1, ixs[0].object.userData)
+        l.typeResolve()
         @ve.surface.updateLink(l.ln)
-        l.ifInternetToWanLink()
-        l.ifPhysicalToPlink()
-        l.setEndpointData()
         @ve.sview.render()
         @ve.addie.update([l])
+
       @ve.sview.container.style.cursor = "default"
       @ve.sview.container.onmousedown = (eve) => @ve.sview.mouseh.baseDown(eve)
       true
