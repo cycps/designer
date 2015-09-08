@@ -2330,10 +2330,53 @@ class MultiLinker
       )
       l.props.name = @ve.namemanager.getName("link")
       l.id.name = l.props.name
-      #TODO create the interface (2156)
+
+      ifname = ""
+      if s.props.interfaces?
+        ifname = "ifx"+Object.keys(s.props.interfaces).length
+        s.props.interfaces[ifname] = {
+          name: ifname,
+          latency: 0,
+          capacity: 1000
+        }
+     
+      l.endpoint[0] = s
+      l.endpoint[0].links.push(l)
+      l.ep_ifx[0] = ifname
       @links.push(l)
+      true
 
   handleDown: (eve) =>
+    @ve.sview.raycaster.setFromCamera(@ve.sview.mouseh.pos, @ve.sview.mouseh.icam)
+    ixs = @ve.sview.raycaster.intersectObjects(@ve.surface.baseRect.obj3d.children)
+    if ixs.length >0 and ixs[0].object.userData.cyjs?
+      e = ixs[0].object.userData
+      console.log "! multilink1 " + e.constructor.name
+      for l in @links
+        l.ln.geom.vertices[1] = ixs[0].object.linep
+        ixs[0].object.lines.push(l)
+
+        ifname = ""
+        if ixs[0].object.userData.props.interfaces?
+          ifname = "ifx"+Object.keys(ixs[0].object.userData.props.interfaces).length
+          ixs[0].object.userData.props.interfaces[ifname] = {
+            name: ifname,
+            latency: 0,
+            capacity: 1000
+          }
+        l.endpoint[1] = ixs[0].object.userData
+        l.ep_ifx[1] = ifname
+        l.endpoint[1].links.push(l)
+        @ve.surface.updateLink(l)
+        l.ifInternetToWanLink()
+        l.ifPhysicalToPlink()
+        l.setEndpointData()
+        @ve.sview.render()
+        @ve.addie.update([l])
+    else
+      console.log "! multilink miss"
+
+
     @ve.sview.container.style.cursor = "default"
     @ve.sview.container.onmousedown = (eve) => @ve.sview.mouseh.baseDown(eve)
 
