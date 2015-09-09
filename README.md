@@ -26,8 +26,12 @@ A web application for designing networked cyber-physical system experiments. Cyb
 
 * Graphical network manipulation
   - Adding Nodes
-  - **Removing Nodes**
+  - Removing Nodes
   - Interconnecting Nodes
+  - MultiSelect
+  - MultiLink
+  - Zooming
+  - Hierarchical Grouping
 
 ### Design Interaction
 
@@ -35,7 +39,7 @@ A web application for designing networked cyber-physical system experiments. Cyb
 * Geometric Multi-select
 * **Programmatic Multi-select**
 * Common Property Presentation and Change Propagation on Multi-Select
-* **Multiple-Surface-Single-Design (MSSD)**
+* Multiple-Surface-Single-Design (MSSD)
 * **Multiple-View-Single-Design (MVSD)**
 
 
