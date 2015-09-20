@@ -8,6 +8,6 @@ RUN mkdir -p /cypress/web
 COPY . /cypress/web/
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
-EXPOSE 443
+EXPOSE 80
 
 CMD nginx
