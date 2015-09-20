@@ -1093,7 +1093,7 @@ class VisualEnvironment
   loadIcon: (name, f = null) =>
     if not @iconCache[name]?
       THREE.ImageUtils.loadTexture(
-        "ico/"+g.user+"_"+name+".png", {}, (tex) =>
+        "ico/"+g.user+"/"+name+".png", {}, (tex) =>
            @iconCache[name] = tex
            if f?
              f(tex)
