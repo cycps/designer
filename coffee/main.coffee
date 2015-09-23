@@ -22,6 +22,15 @@ initViz = () =>
 
 dsg = ""
 
+launchAddieInstance = () =>
+  ($.get "/gatekeeper/launchAddie?user="+g.user+"&design="+dsg, (data) =>
+    console.log("addie instance launched and ready!")
+    g.ve.addie.init()
+  ).fail () ->
+    console.log("failed to launch addie instance")
+    true
+
+
 #Entry point
 root.go = ->
   ($.get "/gatekeeper/thisUser", (data) =>
@@ -31,7 +40,7 @@ root.go = ->
     dsg = g.xp
     console.log("the xp is " + g.xp)
     initViz()
-    g.ve.addie.init()
+    launchAddieInstance()
     true
   ).fail () ->
     console.log("fail to get current user, going back to login screen")
